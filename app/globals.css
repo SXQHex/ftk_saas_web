@@ -147,11 +147,14 @@ button:disabled { cursor: wait; opacity: .68; }
   .sidebar { position: relative; display: block; width: 100%; height: auto; min-height: 0; padding: 13px 17px; border-right: 0; border-bottom: 1px solid var(--line); }
   .dashboard-brand { padding: 0; }
   .brand-mark.small { width: 37px; height: 37px; }
-  .nav-label, .side-nav, .sidebar-bottom { display: none; }
+  .nav-label, .side-nav { display: none; }
+  .sidebar-bottom { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; margin-top: 12px; padding: 10px 0 0; }
+  .sidebar-status { font-size: 10px; }
+  .signout-button { width: auto; min-height: 32px; padding: 0 3px; }
   .dashboard-topbar { min-height: 64px; padding: 0 18px; }
   .breadcrumbs { display: none; }
-  .mobile-dashboard-brand { display: flex; align-items: center; gap: 8px; color: #2d6247; font-size: 13px; font-weight: 800; }
-  .account-chip { gap: 7px; }
+  .mobile-dashboard-brand { display: none; }
+  .account-chip { gap: 7px; margin-left: auto; }
   .avatar { width: 30px; height: 30px; }
   .account-chip > span:last-child { max-width: 135px; }
   .dashboard-content { padding: 26px 17px 28px; }

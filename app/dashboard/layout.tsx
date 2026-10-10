@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "./dashboard-shell";
 
+export const dynamic = "force-dynamic";
+
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();

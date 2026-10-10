@@ -77,6 +77,14 @@ export function AttendanceManager({
   ) : [];
   const zeroCreditPacks = matchingSubscriptions.filter((subscription) => subscription.credits_remaining <= 0).length;
   const privateHasCredit = matchingSubscriptions.some((subscription) => subscription.credits_remaining > 0);
+  const selectedMemberHasGroupCredit = matchingSubscriptions.some((subscription) =>
+    selectedLesson?.type === "group" && subscription.member_id === memberId && subscription.credits_remaining > 0
+  );
+  const privateAttendanceAlreadyRecorded = Boolean(
+    selectedLesson?.type === "private" &&
+    selectedLesson.private_member_id &&
+    recordedMemberIds.has(selectedLesson.private_member_id)
+  );
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -88,6 +96,14 @@ export function AttendanceManager({
     }
     if (selectedLesson && (selectedLesson.status === "cancelled" || selectedLesson.status === "postponed")) {
       setError("İptal veya ertelenmiş bir ders için yoklama kaydı eklenemez.");
+      return;
+    }
+    if (selectedLesson?.type === "private" && !selectedLesson.private_member_id) {
+      setError("Özel derse henüz üye atanmamış. Önce ders kaydını düzenleyin.");
+      return;
+    }
+    if (privateAttendanceAlreadyRecorded) {
+      setError("Bu özel ders için yoklama zaten kaydedilmiş.");
       return;
     }
 
@@ -136,7 +152,9 @@ export function AttendanceManager({
               const nextId = e.target.value;
               const nextLesson = lessons.find((lesson) => lesson.id === nextId);
               setLessonId(nextId);
-              setMemberId(nextLesson?.type === "private" && nextLesson.private_member_id ? nextLesson.private_member_id : "");
+              const assignedMemberId = nextLesson?.type === "private" ? nextLesson.private_member_id : null;
+              const duplicatePrivateAttendance = Boolean(assignedMemberId && attendance.some((row) => row.lesson_id === nextId && row.member_id === assignedMemberId));
+              setMemberId(assignedMemberId && !duplicatePrivateAttendance ? assignedMemberId : "");
             }}><option value="">Ders seçin</option>{lessons.map((lesson) => <option key={lesson.id} value={lesson.id} disabled={lesson.status === "cancelled" || lesson.status === "postponed"}>{new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium", timeStyle: "short" }).format(new Date(lesson.starts_at))} · {lesson.title} · {lesson.type === "group" ? "Grup" : "Özel"} · {statusLabels[lesson.status]}</option>)}</select></label>
             <label>Üye *<select required value={memberId} onChange={(e) => setMemberId(e.target.value)} disabled={!lessonId}><option value="">Üye seçin</option>{eligibleMembers.map((member) => <option key={member.id} value={member.id}>{member.full_name}{!member.is_active ? " (pasif)" : ""}</option>)}</select></label>
             <label className="check-field attendance-check"><input type="checkbox" checked={attended} onChange={(e) => setAttended(e.target.checked)} /> Katıldı</label>
@@ -144,7 +162,9 @@ export function AttendanceManager({
           </div>
           {selectedLesson?.type === "group" && <p className="inline-info"><CheckCircle2 size={15} /> Grup dersine yoklama eklenmesi dersi tamamlanmış sayar. Aktif grup aboneliklerinden uygun krediler bir kez düşülür; katıldı/katılmadı seçimi bu kuralı değiştirmez.</p>}
           {selectedLesson?.type === "group" && zeroCreditPacks > 0 && <p className="notice error credit-warning" role="status">{zeroCreditPacks} aktif grup paketi sıfır krediye sahip. Bu paketlerden kredi düşülmez; yoklama kaydı yine de yapılabilir.</p>}
+          {selectedLesson?.type === "group" && memberId && !selectedMemberHasGroupCredit && <p className="notice error credit-warning" role="status">Seçilen üyenin ders tarihinde kullanılabilir aktif grup kredisi yok. Katılım kaydı yapılabilir; bakiye eksiye düşmez.</p>}
           {selectedLesson?.type === "private" && <p className="inline-info"><CheckCircle2 size={15} /> Özel ders kredisi, ders durumu yönetim panelinde “Tamamlandı” yapıldığında tüketilir.</p>}
+          {privateAttendanceAlreadyRecorded && <p className="notice error credit-warning" role="status">Bu özel ders için yoklama zaten mevcut.</p>}
           {selectedLesson?.type === "private" && selectedLesson.private_member_id && !privateHasCredit && <p className="notice error credit-warning" role="status">Bu üyenin ders tarihinde kullanılabilir özel ders kredisi yok. Ders tamamlandığında bakiye eksiye düşmez; yoklama yine kaydedilebilir.</p>}
           {selectedLesson?.type === "private" && !selectedLesson.private_member_id && <p className="notice error credit-warning" role="status">Bu özel derse üye atanmamış. Önce ders kaydına üye atayın.</p>}
           <div className="form-actions"><button className="primary-action" type="submit" disabled={busy || !lessonId || !memberId}><CirclePlus size={16} />{busy ? "Kaydediliyor…" : "Yoklamayı kaydet"}</button></div>

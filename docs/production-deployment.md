@@ -1,57 +1,60 @@
 # Production deployment checklist
 
-Target production origin: `https://uye.fethiyetango.com`.
+Production app origin: `https://uye.fethiyetango.com`.
+Netlify site provided for this app: `https://ftksaasweb.netlify.app`.
 
-## 1. Create an isolated Netlify site
+## 1. Verify the Netlify production site
 
-Create a **new site** from the private GitHub repository `SXQHex/ftk_saas_web`, production branch `main`. Do not reuse or modify the existing `fethiyetango.netlify.app` site, which serves the public website.
+In Netlify, open the site whose production URL is `ftksaasweb.netlify.app` and verify:
+- It is connected to the private GitHub repository `SXQHex/ftk_saas_web`.
+- Production branch is `main`.
+- The latest production deploy uses commit `fb8f2f2b0c22f01e07e103973ba67d9c20d9a299` or newer.
+- Build settings use `npm run build`; Node.js is pinned to 26 in `netlify.toml`; do not set a static publish directory.
+- Configure these production environment variables:
+  - `NEXT_PUBLIC_SUPABASE_URL=https://ysplylnwdfwizmuxvcqg.supabase.co`
+  - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: the StudioSaaS publishable key.
 
-Build settings are in `netlify.toml`:
-- Build command: `npm run build`
-- Node.js: 26
-- Publish directory: leave unspecified so Netlify's Next.js adapter manages server-rendered routes and functions.
+Never put a `service_role`/secret key in browser-visible or `NEXT_PUBLIC_*` variables. Save the variables, trigger a new production deploy, and wait for it to succeed.
 
-Add these production environment variables in the new Netlify site's environment settings:
-- `NEXT_PUBLIC_SUPABASE_URL=https://ysplylnwdfwizmuxvcqg.supabase.co`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`: the StudioSaaS publishable key.
+## 2. Attach the custom domain in Netlify
 
-The publishable key is intended for browser apps; never configure a `service_role`/secret key in any `NEXT_PUBLIC_*` variable. Trigger a production deploy and wait for the deploy to pass.
-
-## 2. Attach the custom domain before changing DNS
-
-In the new Netlify site's domain settings, add `uye.fethiyetango.com`. Use the exact `.netlify.app` CNAME target that Netlify displays for this **new** site; do not guess it from the GitHub repository name.
-
-Then in Cloudflare > `fethiyetango.com` > DNS, add:
+In the Netlify site's domain settings, add and verify `uye.fethiyetango.com`. The Cloudflare DNS record has already been created:
 - Type: `CNAME`
-- Name: `uye`
-- Target: the new Netlify site's exact `.netlify.app` hostname
+- Name: `uye.fethiyetango.com`
+- Target: `ftksaasweb.netlify.app`
 - Proxy status: **DNS only** (grey cloud)
 - TTL: Auto
 
-Do not change the existing apex or `www` records; they serve the public website. Wait until Netlify validates the domain and provisions its TLS certificate. Test `https://uye.fethiyetango.com/api/health`; it should return `{"status":"ok","service":"ftk-saas-web"}`.
+Do not alter the existing apex or `www` DNS records; they serve the public website. Netlify must be told to accept the custom domain and issue its TLS certificate. Once Netlify reports HTTPS is ready, check:
+- `https://ftksaasweb.netlify.app/api/health`
+- `https://uye.fethiyetango.com/api/health`
+
+Expected response: `{"status":"ok","service":"ftk-saas-web"}`. The external web checker available in this workspace could not fetch the Netlify endpoints, so the published site's live health response has not been independently verified here.
 
 ## 3. Supabase Auth configuration
 
 In the **StudioSaaS** project, open Authentication > URL Configuration:
 - Site URL: `https://uye.fethiyetango.com`
-- Redirect URL allowlist must include `https://uye.fethiyetango.com/reset-password`.
+- Redirect URL allowlist includes `https://uye.fethiyetango.com/reset-password`.
 - Add `http://localhost:3000/reset-password` only if local development is required.
 - Add specific preview callback URLs temporarily for testing; do not add broad wildcard production entries.
 
-In Authentication > Password/Security settings, enable leaked-password protection before inviting operational users. Confirm email verification and rate limits are appropriate for the chosen login policy. The application has no public registration screen; new accounts should be provisioned through the trusted owner workflow.
+The Security Advisor currently reports leaked-password protection disabled. Enable it under Authentication > Password/Security settings before inviting operational users: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection. Confirm email verification and rate limits match the intended account-provisioning policy.
 
-## 4. First administrator and smoke test
+## 4. Activate the owner account
 
-Read [initial-admin-setup.md](initial-admin-setup.md). Promote only the verified studio-owner profile to `admin` from the trusted Supabase SQL Editor; do not set the role from browser code or sign-up metadata.
+Read [initial-admin-setup.md](initial-admin-setup.md). The existing profile is still assigned the `student` role. Promote only the verified studio-owner profile to `admin` using the trusted procedure in the Supabase SQL Editor; never set an admin role from browser code or sign-up metadata.
 
-After deployment:
-1. Sign in as the verified owner and confirm the admin-only navigation appears.
-2. Create a test member, subscription, lesson and attendance record.
-3. Verify the credit ledger and remaining balance; confirm cancellation/postponement does not consume credits and duplicate attendance does not consume credits twice.
+## 5. Production smoke tests
+
+After the custom domain responds with valid HTTPS:
+1. Sign in as the verified owner and confirm admin navigation.
+2. Test creating a member, subscription, lesson and attendance record.
+3. Check the credit ledger and remaining balance; confirm cancelled/postponed lessons do not consume credits and duplicate attendance cannot consume credits twice.
 4. Test password recovery end-to-end from `uye.fethiyetango.com`.
-5. Test a normal student and instructor account, including denied admin routes.
-6. Remove test records through the application's supported workflow or reset the empty test dataset before daily use.
+5. Test student and instructor restrictions, including denied admin writes.
+6. Only begin day-to-day use after Auth configuration and the above checks pass.
 
-## Current deployment boundary
+## Deployment limits
 
-GitHub Actions validates the code, dependency audit, production build and HTTP health endpoint. The connected tools in this workspace do not expose Netlify site-management/deployment operations. Therefore the new Netlify site and its generated CNAME target must be obtained in Netlify before the Cloudflare `uye` record can safely be added. Do not point the hostname at the existing public site's Netlify target.
+GitHub Actions validates dependency audit, lint, production build and an HTTP health smoke test. A direct Netlify management connection is not exposed in the current tool session, so the repo association, environment variables, custom-domain attachment and certificate state must be verified inside Netlify. Cloudflare DNS for the `uye` hostname is configured; the main website records remain unchanged.

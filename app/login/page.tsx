@@ -37,7 +37,13 @@ export default function LoginPage() {
     if (!email) { setError("Şifre sıfırlama bağlantısı için e-posta adresini gir."); return; }
     try {
       const supabase = createClient();
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
+      // Production recovery emails must always return to the canonical app domain.
+      // Keep localhost behavior only for local development.
+      const redirectOrigin =
+        process.env.NODE_ENV === "production"
+          ? "https://uye.fethiyetango.com"
+          : window.location.origin;
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${redirectOrigin}/reset-password` });
       if (resetError) throw resetError;
       setMessage("E-posta adresin kayıtlıysa şifre sıfırlama bağlantısı gönderildi.");
     } catch { setError("Şifre sıfırlama isteği alınamadı. Bir süre sonra tekrar deneyin."); }

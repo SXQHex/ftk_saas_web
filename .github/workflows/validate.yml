@@ -25,6 +25,10 @@ jobs:
           node-version-file: .nvmrc
       - name: Install dependencies
         run: npm install
+      - name: Inspect dependency advisories
+        run: |
+          npm audit --json > npm-audit.json || true
+          node -e 'const r = require("./npm-audit.json"); console.log("Advisory totals:", JSON.stringify(r.metadata?.vulnerabilities ?? {})); for (const [name, v] of Object.entries(r.vulnerabilities ?? {})) { const via = (v.via ?? []).filter(x => typeof x === "object").map(x => x.title).join("; "); console.log(name + " | " + v.severity + " | direct=" + v.isDirect + " | fix=" + JSON.stringify(v.fixAvailable) + " | " + via); }'
       - name: Lint
         run: npm run lint
       - name: Build

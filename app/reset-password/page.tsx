@@ -25,11 +25,13 @@ export default function ResetPasswordPage() {
         if (sessionError) throw sessionError;
 
         if (!data.session) {
-          setError(
-            params.get("error") === "recovery"
-              ? "Şifre sıfırlama bağlantısı geçersiz, kullanılmış veya süresi dolmuş olabilir. Giriş ekranından yeni bir bağlantı isteyin."
-              : "Şifre sıfırlama oturumu doğrulanamadı. Giriş ekranından yeni bir bağlantı isteyin.",
-          );
+          if (active) {
+            setError(
+              params.get("error") === "recovery"
+                ? "Şifre sıfırlama bağlantısı geçersiz, kullanılmış veya süresi dolmuş olabilir. Giriş ekranından yeni bir bağlantı isteyin."
+                : "Şifre sıfırlama oturumu doğrulanamadı. Giriş ekranından yeni bir bağlantı isteyin.",
+            );
+          }
           return;
         }
 

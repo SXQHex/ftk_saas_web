@@ -19,12 +19,12 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: authData, error: authError } = await supabase.auth.getClaims();
 
-  if (authError || !authData.claims?.sub) {
+  if (authError || !authData?.claims?.sub) {
     redirect("/login");
   }
 
-  const userId = authData.claims.sub;
-  const email = typeof authData.claims.email === "string" ? authData.claims.email : "Hesap";
+  const userId = authData!.claims!.sub;
+  const email = typeof authData!.claims!.email === "string" ? authData!.claims!.email : "Hesap";
   const [profileResult, membersResult, lessonsResult, subscriptionsResult] = await Promise.all([
     supabase.from("profiles").select("role").eq("id", userId).maybeSingle(),
     supabase.from("members").select("*", { count: "exact", head: true }),

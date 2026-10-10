@@ -13,6 +13,7 @@ Next.js frontend for the dance-school management app. Supabase is the authentica
 2. Copy `.env.example` to `.env.local` and set the Supabase project URL and **publishable** key.
 3. Install dependencies with `pnpm install` (or `npm install`).
 4. Run `pnpm dev` (or `npm run dev`).
+5. Run `npm run lint` to check JavaScript and TypeScript with Biome.
 
 ## Admin setup
 

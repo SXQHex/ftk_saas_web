@@ -220,7 +220,7 @@ export function LessonsManager({
       <section className="table-card">
         <div className="table-toolbar"><div><h2>Ders listesi</h2><p>{filtered.length} kayıt gösteriliyor</p></div><div className="toolbar-filters"><label className="search-box"><CalendarDays size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ders ara…" aria-label="Ders ara" /></label><select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Duruma göre filtrele"><option value="all">Tüm durumlar</option><option value="scheduled">Planlandı</option><option value="completed">Tamamlandı</option><option value="cancelled">İptal</option><option value="postponed">Ertelendi</option></select></div></div>
         {lessons.length === 0 && !loadError ? (
-          <div className="empty-state"><span className="empty-icon"><CalendarDays size={24} /></span><h3>Henüz ders planlanmadı</h3><p>İlk dersi oluşturarak takviminizi hazırlayın.</p><button className="secondary-action" type="button" onClick={openCreate}>Ders planla</button></div>
+          <div className="empty-state"><span className="empty-icon"><CalendarDays size={24} /></span><h3>Henüz ders planlanmadı</h3><p>İlk dersi oluşturarak takviminizi hazırlayın.</p>{canManage && <button className="secondary-action" type="button" onClick={openCreate}>Ders planla</button>}</div>
         ) : filtered.length === 0 ? (
           <div className="empty-state compact"><h3>Sonuç bulunamadı</h3><p>Arama veya filtre ölçütünü değiştirin.</p></div>
         ) : (

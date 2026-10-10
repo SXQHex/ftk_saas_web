@@ -14,6 +14,19 @@ Next.js frontend for the dance-school management app. Supabase is the authentica
 3. Install dependencies with `pnpm install` (or `npm install`).
 4. Run `pnpm dev` (or `npm run dev`).
 
+## Admin setup
+
+See [docs/initial-admin-setup.md](docs/initial-admin-setup.md) to securely promote the intended owner profile through the Supabase SQL Editor. Public sign-up remains `student` by default.
+
+## Application modules
+
+- Dashboard overview
+- Member list, edit and active/inactive status (admin)
+- Lesson planning and status controls (admin); read-only calendar for instructors
+- Attendance entry (admin/instructor); credit consumption runs through database triggers
+- Subscriptions and payment status (admin)
+- Credit transaction ledger and audited manual adjustments (admin)
+
 ## Security
 
 - Never put a Supabase `service_role`/secret key in frontend environment variables.

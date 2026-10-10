@@ -316,3 +316,6 @@ button:disabled { cursor: wait; opacity: .68; }
   .metric-action { margin-top: 10px; }
   .attendance-entry .form-actions .primary-action { width: 100%; }
 }
+
+.role-banner { margin: 20px clamp(24px, 4vw, 56px) 0; padding: 12px 14px; border: 1px solid #e6d9b7; border-radius: 9px; background: #fffaf0; color: #79643c; font-size: 11px; line-height: 1.6; }
+@media (max-width: 680px) { .role-banner { margin: 15px 17px 0; } }

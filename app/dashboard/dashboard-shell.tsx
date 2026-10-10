@@ -33,6 +33,11 @@ export function DashboardShell({
   roleLabel: string;
 }) {
   const pathname = usePathname();
+  const visibleNavigation = roleLabel === "admin"
+    ? navigation
+    : roleLabel === "instructor"
+      ? navigation.filter((item) => ["/dashboard", "/dashboard/lessons", "/dashboard/attendance"].includes(item.href))
+      : navigation.filter((item) => item.href === "/dashboard");
 
   return (
     <main className="dashboard-shell">
@@ -43,7 +48,7 @@ export function DashboardShell({
         </Link>
         <p className="nav-label">ÇALIŞMA ALANI</p>
         <nav className="side-nav" aria-label="Ana menü">
-          {navigation.map((item) => {
+          {visibleNavigation.map((item) => {
             const Icon = item.icon;
             const active = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             return (
@@ -65,6 +70,15 @@ export function DashboardShell({
           <div className="breadcrumbs">Çalışma alanı <span>/</span> {navigation.find((item) => item.exact ? pathname === item.href : pathname.startsWith(item.href))?.label ?? "Panel"}</div>
           <div className="account-chip"><span className="avatar">{email.slice(0, 1).toLocaleUpperCase("tr-TR") || "S"}</span><span><strong>{email || "Hesap"}</strong><small>{roleLabel}</small></span></div>
         </header>
+        {roleLabel === "student" && (
+          <div className="role-banner">Bu hesap öğrenci rolünde. Yönetim ekranları için stüdyo yöneticinizden erişim isteyin.</div>
+        )}
+        {roleLabel === "instructor" && (
+          <div className="role-banner">Eğitmen erişimi: ders takvimi ve yoklama kullanılabilir; üyelik, abonelik ve kredi yönetimi yönetici rolü gerektirir.</div>
+        )}
+        {!["admin", "instructor", "student"].includes(roleLabel) && (
+          <div className="role-banner">Hesabınızın rolü doğrulanamadı. Yetkilerinizin yüklenmesi için profil kaydını kontrol edin.</div>
+        )}
         {children}
       </section>
     </main>

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 
 export default function ResetPasswordPage() {
   const [ready, setReady] = useState(false);
+  const [recoveryVerified, setRecoveryVerified] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18,15 +19,25 @@ export default function ResetPasswordPage() {
     async function prepareRecoverySession() {
       try {
         const params = new URLSearchParams(window.location.search);
-        const code = params.get("code");
-        if (code) {
-          const supabase = createClient();
-          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
-          if (exchangeError) throw exchangeError;
-          window.history.replaceState({}, document.title, window.location.pathname);
+        const supabase = createClient();
+        const { data, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) throw sessionError;
+
+        if (!data.session) {
+          setError(
+            params.get("error") === "recovery"
+              ? "Şifre sıfırlama bağlantısı geçersiz, kullanılmış veya süresi dolmuş olabilir. Giriş ekranından yeni bir bağlantı isteyin."
+              : "Şifre sıfırlama oturumu doğrulanamadı. Giriş ekranından yeni bir bağlantı isteyin.",
+          );
+          return;
         }
-      } catch (e) {
-        if (active) setError(e instanceof Error ? e.message : "Sıfırlama bağlantısı doğrulanamadı.");
+
+        if (active) setRecoveryVerified(true);
+      } catch {
+        if (active) {
+          setError("Şifre sıfırlama oturumu doğrulanamadı. Giriş ekranından yeni bir bağlantı isteyin.");
+        }
       } finally {
         if (active) setReady(true);
       }
@@ -59,7 +70,7 @@ export default function ResetPasswordPage() {
       setPassword("");
       setConfirmPassword("");
     } catch {
-      setError("Şifre güncellenemedi. Bağlantının süresi dolmuş olabilir; yeni bir sıfırlama bağlantısı isteyin.");
+      setError("Şifre güncellenemedi. Giriş ekranından yeni bir sıfırlama bağlantısı isteyin.");
     } finally {
       setBusy(false);
     }
@@ -73,7 +84,12 @@ export default function ResetPasswordPage() {
         <h1>Yeni şifre belirleyin</h1>
         <p className="subheading">Hesabınız için yeni bir şifre oluşturun.</p>
 
-        {!ready ? <p className="notice" role="status">Sıfırlama bağlantısı doğrulanıyor…</p> : (
+        {!ready ? <p className="notice" role="status">Sıfırlama bağlantısı doğrulanıyor…</p> : !recoveryVerified ? (
+          <>
+            <p className="notice error" role="alert">{error}</p>
+            <Link href="/login" className="primary-link">Giriş ekranına dön ve yeni bağlantı iste <span aria-hidden="true">→</span></Link>
+          </>
+        ) : (
           <>
             {error && <p className="notice error" role="alert">{error}</p>}
             {message ? (

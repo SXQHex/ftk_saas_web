@@ -2,7 +2,7 @@
 
 import { FormEvent, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, Check, CirclePlus, Clock3, Edit2, UserRound, X } from "lucide-react";
+import { CalendarDays, CirclePlus, Clock3, Edit2, UserRound, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type MemberOption = { id: string; full_name: string };

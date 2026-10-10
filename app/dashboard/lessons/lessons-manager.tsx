@@ -58,11 +58,13 @@ export function LessonsManager({
   members,
   instructors,
   loadError,
+  canManage,
 }: {
   lessons: Lesson[];
   members: MemberOption[];
   instructors: InstructorOption[];
   loadError: boolean;
+  canManage: boolean;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -187,7 +189,7 @@ export function LessonsManager({
     <>
       <div className="page-heading">
         <div><p className="eyebrow">PLANLAMA</p><h1>Ders takvimi</h1><p className="dashboard-subtitle">Özel ve grup derslerini planlayın, tamamlanma durumunu yönetin.</p></div>
-        <button className="primary-action" type="button" onClick={openCreate}><CirclePlus size={17} /> Ders planla</button>
+        {canManage && <button className="primary-action" type="button" onClick={openCreate}><CirclePlus size={17} /> Ders planla</button>}
       </div>
 
       <div className="stat-strip">
@@ -197,7 +199,7 @@ export function LessonsManager({
       </div>
       {(error || notice || loadError) && <div className={error || loadError ? "notice error page-notice" : "notice success page-notice"} role={error || loadError ? "alert" : "status"}>{error || (loadError ? "Dersler yüklenemedi. RLS politikalarını kontrol edin." : notice)}</div>}
 
-      {formOpen && (
+      {canManage && formOpen && (
         <section className="form-card">
           <div className="form-card-heading"><div><h2>{editingId ? "Dersi düzenle" : "Yeni ders planla"}</h2><p>Ders tamamlanınca kredi tüketimi veritabanında yönetilir.</p></div><button className="icon-button" type="button" onClick={() => setFormOpen(false)} aria-label="Formu kapat"><X size={18} /></button></div>
           <form className="record-form" onSubmit={handleSubmit}>
@@ -229,7 +231,7 @@ export function LessonsManager({
                 <td><div className="date-cell"><strong>{new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(new Date(lesson.starts_at))}</strong><span><Clock3 size={13} />{new Intl.DateTimeFormat("tr-TR", { timeStyle: "short" }).format(new Date(lesson.starts_at))}{lesson.ends_at ? ` – ${new Intl.DateTimeFormat("tr-TR", { timeStyle: "short" }).format(new Date(lesson.ends_at))}` : ""}</span></div></td>
                 <td><span className="type-pill">{lesson.type === "private" ? "Özel" : "Grup"}</span></td>
                 <td><span className={`status-pill lesson-${lesson.status}`}><span />{statusLabels[lesson.status]}</span></td>
-                <td><div className="row-actions">{lesson.status !== "completed" && <><button className="icon-button" type="button" onClick={() => openEdit(lesson)} aria-label="Dersi düzenle"><Edit2 size={16} /></button><select className="status-select" disabled={pendingId === lesson.id} value={lesson.status} onChange={(e) => void changeStatus(lesson, e.target.value as Lesson["status"])} aria-label="Ders durumunu değiştir"><option value="scheduled">Planlandı</option><option value="completed">Tamamlandı</option><option value="cancelled">İptal</option><option value="postponed">Ertelendi</option></select></>}</div></td>
+                <td><div className="row-actions">{canManage && lesson.status !== "completed" && <><button className="icon-button" type="button" onClick={() => openEdit(lesson)} aria-label="Dersi düzenle"><Edit2 size={16} /></button><select className="status-select" disabled={pendingId === lesson.id} value={lesson.status} onChange={(e) => void changeStatus(lesson, e.target.value as Lesson["status"])} aria-label="Ders durumunu değiştir"><option value="scheduled">Planlandı</option><option value="completed">Tamamlandı</option><option value="cancelled">İptal</option><option value="postponed">Ertelendi</option></select></>}</div></td>
               </tr>
             ))}</tbody>
           </table></div>

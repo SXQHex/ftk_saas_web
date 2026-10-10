@@ -34,14 +34,14 @@ export async function updateSession(request: NextRequest) {
   const { data, error } = await supabase.auth.getClaims();
   const pathname = request.nextUrl.pathname;
 
-  if ((!data.claims || error) && pathname.startsWith("/dashboard")) {
+  if ((!data?.claims || error) && pathname.startsWith("/dashboard")) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/login";
     redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (data.claims && pathname === "/login") {
+  if (data?.claims && pathname === "/login") {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
     redirectUrl.search = "";

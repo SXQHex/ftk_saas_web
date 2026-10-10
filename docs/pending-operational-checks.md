@@ -1,8 +1,10 @@
 # Pending operational checks
 
-## Completed in the database
+## Applied RLS fix
 
-The migration `fix_group_lesson_visibility_for_open_ended_packages` updates the student lesson SELECT policy to treat `ends_on IS NULL` as open-ended. This matches the group subscription rule where four credits expire by usage, not by a fixed calendar window. It does not change existing user roles or production records.
+The StudioSaaS migration `fix_group_lesson_visibility_for_open_ended_packages` is applied. It updates the student lesson SELECT policy to treat `ends_on IS NULL` as open-ended, matching the group subscription rule where four credits expire by usage, not by a fixed calendar window. The SQL used is stored at [database-migrations/20261010030941_fix_group_lesson_visibility_for_open_ended_packages.sql](database-migrations/20261010030941_fix_group_lesson_visibility_for_open_ended_packages.sql). No user roles or production records were changed.
+
+Note: the original three StudioSaaS migrations predate SQL migration files in this repository. Do not run a fresh database provisioning from repository files alone until those baseline migrations are reconstructed/checked into version control.
 
 ## Remaining owner/security settings
 

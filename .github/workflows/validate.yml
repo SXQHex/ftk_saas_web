@@ -31,3 +31,18 @@ jobs:
         run: npm run lint
       - name: Build
         run: npm run build
+      - name: Smoke test production server
+        run: |
+          set -euo pipefail
+          npm run start -- --hostname 127.0.0.1 > /tmp/ftk-saas-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3000/api/health > /tmp/ftk-saas-health.json; then
+              cat /tmp/ftk-saas-health.json
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ftk-saas-next.log
+          exit 1

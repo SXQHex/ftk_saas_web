@@ -5,10 +5,11 @@ export const metadata = { title: "Yoklama | FTK Studio" };
 
 export default async function AttendancePage() {
   const { supabase, userId } = await requireRole(["admin", "instructor"]);
-  const [lessonsResult, membersResult, attendanceResult] = await Promise.all([
-    supabase.from("lessons").select("id, type, title, starts_at, status").order("starts_at", { ascending: false }).limit(300),
+  const [lessonsResult, membersResult, attendanceResult, subscriptionsResult] = await Promise.all([
+    supabase.from("lessons").select("id, type, title, starts_at, status, private_member_id").order("starts_at", { ascending: false }).limit(300),
     supabase.from("members").select("id, full_name, phone, email, is_active").order("full_name"),
     supabase.from("attendance").select("id, lesson_id, member_id, attended, checked_in_at, notes").order("checked_in_at", { ascending: false }).limit(500),
+    supabase.from("subscriptions").select("id, member_id, type, status, starts_on, ends_on, credits_remaining").order("starts_on", { ascending: false }),
   ]);
 
   return (
@@ -17,8 +18,9 @@ export default async function AttendancePage() {
         lessons={lessonsResult.data ?? []}
         members={membersResult.data ?? []}
         attendance={attendanceResult.data ?? []}
+        subscriptions={subscriptionsResult.data ?? []}
         userId={userId}
-        loadError={Boolean(lessonsResult.error || membersResult.error || attendanceResult.error)}
+        loadError={Boolean(lessonsResult.error || membersResult.error || attendanceResult.error || subscriptionsResult.error)}
       />
     </div>
   );

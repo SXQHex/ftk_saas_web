@@ -8,7 +8,7 @@ The new StudioSaaS database currently has one Auth account and its profile is `s
 
 1. Sign in to the Supabase dashboard for the **StudioSaaS** project.
 2. Open SQL Editor and replace the email placeholder below with the exact email of the owner account you intend to administer the studio.
-3. Run the block once and verify that it reports one updated profile.
+3. Run the block once. It should finish without an exception and report one updated profile in the SQL results/messages.
 
 ```sql
 do $$
@@ -27,6 +27,9 @@ begin
   if affected_rows <> 1 then
     raise exception 'Expected exactly one owner profile to be updated; updated % rows.', affected_rows;
   end if;
+
+  raise notice 'Updated exactly one owner profile to admin.';
+
 end
 $$;
 ```

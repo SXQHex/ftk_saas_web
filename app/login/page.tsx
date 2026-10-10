@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -13,6 +13,13 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("error") === "profile") {
+      setError("Bu hesap için profil/rol kaydı doğrulanamadı. Lütfen stüdyo yöneticisine başvurun.");
+    }
+  }, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault(); setBusy(true); setError(""); setMessage("");
     try {
@@ -20,8 +27,8 @@ export default function LoginPage() {
       const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (authError) throw authError;
       router.replace("/dashboard"); router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Giriş yapılamadı.");
+    } catch {
+      setError("Giriş yapılamadı. E-posta ve şifrenizi kontrol edin.");
     } finally { setBusy(false); }
   }
 
@@ -33,7 +40,7 @@ export default function LoginPage() {
       const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` });
       if (resetError) throw resetError;
       setMessage("E-posta adresin kayıtlıysa şifre sıfırlama bağlantısı gönderildi.");
-    } catch (e) { setError(e instanceof Error ? e.message : "İşlem tamamlanamadı."); }
+    } catch { setError("Şifre sıfırlama isteği alınamadı. Bir süre sonra tekrar deneyin."); }
   }
 
   return <main className="auth-shell">

@@ -41,7 +41,13 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
   }
 
-  if (data?.claims && pathname === "/login") {
+  // Keep the explicit profile-error screen reachable for authenticated accounts
+  // whose profile row is missing; otherwise this redirect can loop.
+  if (
+    data?.claims &&
+    pathname === "/login" &&
+    request.nextUrl.searchParams.get("error") !== "profile"
+  ) {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = "/dashboard";
     redirectUrl.search = "";

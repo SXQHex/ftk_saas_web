@@ -14,6 +14,12 @@ import {
 import type { ReactNode } from "react";
 import { SignOutButton } from "@/app/dashboard/sign-out-button";
 
+const roleNames: Record<string, string> = {
+  admin: "Yönetici",
+  instructor: "Eğitmen",
+  student: "Öğrenci",
+};
+
 const navigation = [
   { href: "/dashboard", label: "Genel bakış", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/members", label: "Üyeler", icon: Users },
@@ -68,7 +74,7 @@ export function DashboardShell({
         <header className="dashboard-topbar">
           <div className="mobile-dashboard-brand"><Music2 size={19} /> FTK Studio</div>
           <div className="breadcrumbs">Çalışma alanı <span>/</span> {navigation.find((item) => item.exact ? pathname === item.href : pathname.startsWith(item.href))?.label ?? "Panel"}</div>
-          <div className="account-chip"><span className="avatar">{email.slice(0, 1).toLocaleUpperCase("tr-TR") || "S"}</span><span><strong>{email || "Hesap"}</strong><small>{roleLabel}</small></span></div>
+          <div className="account-chip"><span className="avatar">{email.slice(0, 1).toLocaleUpperCase("tr-TR") || "S"}</span><span><strong>{email || "Hesap"}</strong><small>{roleNames[roleLabel] ?? roleLabel}</small></span></div>
         </header>
         {roleLabel === "student" && (
           <div className="role-banner">Bu hesap öğrenci rolünde. Yönetim ekranları için stüdyo yöneticinizden erişim isteyin.</div>
@@ -76,7 +82,7 @@ export function DashboardShell({
         {roleLabel === "instructor" && (
           <div className="role-banner">Eğitmen erişimi: ders takvimi ve yoklama kullanılabilir; üyelik, abonelik ve kredi yönetimi yönetici rolü gerektirir.</div>
         )}
-        {!["admin", "instructor", "student"].includes(roleLabel) && (
+        {![ "admin", "instructor", "student" ].includes(roleLabel) && (
           <div className="role-banner">Hesabınızın rolü doğrulanamadı. Yetkilerinizin yüklenmesi için profil kaydını kontrol edin.</div>
         )}
         {children}

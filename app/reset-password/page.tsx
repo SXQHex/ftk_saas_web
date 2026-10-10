@@ -58,8 +58,8 @@ export default function ResetPasswordPage() {
       setMessage("Şifreniz güncellendi. Yeni şifrenizle giriş yapabilirsiniz.");
       setPassword("");
       setConfirmPassword("");
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Şifre güncellenemedi.");
+    } catch {
+      setError("Şifre güncellenemedi. Bağlantının süresi dolmuş olabilir; yeni bir sıfırlama bağlantısı isteyin.");
     } finally {
       setBusy(false);
     }

@@ -20,8 +20,17 @@ export default function ResetPasswordPage() {
       try {
         const params = new URLSearchParams(window.location.search);
         const supabase = createClient();
-        const { data, error: sessionError } = await supabase.auth.getSession();
+        const code = params.get("code");
 
+        // Support existing Supabase confirmation links when their PKCE
+        // verifier is available, while the server callback handles token_hash.
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) throw exchangeError;
+          window.history.replaceState({}, document.title, window.location.pathname);
+        }
+
+        const { data, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) throw sessionError;
 
         if (!data.session) {

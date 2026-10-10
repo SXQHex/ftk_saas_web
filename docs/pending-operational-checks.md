@@ -1,28 +1,17 @@
 # Pending operational checks
 
-These items are intentionally documented rather than changed automatically.
+## Completed in the database
 
-## Student access to group lessons
+The migration `fix_group_lesson_visibility_for_open_ended_packages` updates the student lesson SELECT policy to treat `ends_on IS NULL` as open-ended. This matches the group subscription rule where four credits expire by usage, not by a fixed calendar window. It does not change existing user roles or production records.
 
-The current student-facing `lessons_staff_all_student_own` RLS policy checks:
+## Remaining owner/security settings
 
-```sql
-s.ends_on >= (lessons.starts_at at time zone 'Europe/Istanbul')::date
-```
+- The Supabase Security Advisor reported that leaked-password protection is disabled. Enable it in StudioSaaS Authentication > Password/Security settings before operational use. Guide: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+- Verify Site URL and the password reset redirect URL for `https://uye.fethiyetango.com`.
+- Promote only the intended studio-owner profile to `admin` using the trusted procedure in [initial-admin-setup.md](initial-admin-setup.md). The current database has one profile with the `student` role, so admin access is not yet activated.
 
-Group packages are now created with `ends_on = NULL`, so the comparison evaluates to unknown and can hide valid group lessons from student accounts. Before opening student-facing lesson views, prepare and review a migration that treats no end date as open-ended:
+## Deployment status
 
-```sql
-s.ends_on is null
-or s.ends_on >= (lessons.starts_at at time zone 'Europe/Istanbul')::date
-```
-
-This is a database policy change and has **not** been applied by this repository update.
-
-## Password security
-
-The Supabase security advisor reports that leaked-password protection is disabled. Enable it from the StudioSaaS project's Auth password/security settings before inviting real users. See the [Supabase password security guide](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).
-
-## Deployment
-
-Configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in the production hosting environment. The repository's GitHub validation uses Node.js 26; a green build does not mean a hosting deployment or live Auth flow has been completed.
+- Code-level CI runs high-severity dependency audit, Biome lint, production build and HTTP health smoke tests.
+- A new Netlify site must be created from `SXQHex/ftk_saas_web`; do not repurpose `fethiyetango.netlify.app`.
+- The Cloudflare `uye` CNAME must point to the new site's exact Netlify hostname and remain DNS-only. The main domain and `www` records have not been changed.

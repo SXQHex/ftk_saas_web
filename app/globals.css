@@ -319,3 +319,7 @@ button:disabled { cursor: wait; opacity: .68; }
 
 .role-banner { margin: 20px clamp(24px, 4vw, 56px) 0; padding: 12px 14px; border: 1px solid #e6d9b7; border-radius: 9px; background: #fffaf0; color: #79643c; font-size: 11px; line-height: 1.6; }
 @media (max-width: 680px) { .role-banner { margin: 15px 17px 0; } }
+
+.student-access-panel { margin-top: 22px; }
+.student-access-content { padding: 18px 20px 20px; border-top: 1px solid #edf0ed; }
+.student-access-content p { max-width: 680px; margin: 0; color: #68776c; font-size: 12px; line-height: 1.7; }

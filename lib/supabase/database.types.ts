@@ -21,6 +21,7 @@ export type Database = {
         Row: {
           attended: boolean
           checked_in_at: string
+          center_id: string
           checked_in_by: string | null
           created_at: string
           id: string
@@ -31,6 +32,7 @@ export type Database = {
         Insert: {
           attended?: boolean
           checked_in_at?: string
+          center_id?: string
           checked_in_by?: string | null
           created_at?: string
           id?: string
@@ -77,6 +79,7 @@ export type Database = {
           amount: number
           created_at: string
           created_by: string | null
+          center_id: string
           id: string
           lesson_id: string | null
           member_id: string
@@ -88,6 +91,7 @@ export type Database = {
           amount: number
           created_at?: string
           created_by?: string | null
+          center_id?: string
           id?: string
           lesson_id?: string | null
           member_id: string
@@ -143,6 +147,12 @@ export type Database = {
         Update: { id?: string; name?: string; slug?: string; is_active?: boolean; created_at?: string; created_by?: string | null }
         Relationships: [{ foreignKeyName: "organizations_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }]
       }
+      center_admins: {
+        Row: { center_id: string; profile_id: string; created_at: string }
+        Insert: { center_id: string; profile_id: string; created_at?: string }
+        Update: { center_id?: string; profile_id?: string; created_at?: string }
+        Relationships: []
+      }
       centers: {
         Row: { id: string; organization_id: string; name: string; address: string | null; is_active: boolean; created_at: string }
         Insert: { id?: string; organization_id: string; name: string; address?: string | null; is_active?: boolean; created_at?: string }
@@ -195,6 +205,7 @@ export type Database = {
           expected_attendees: number | null
           created_at: string
           created_by: string | null
+          center_id: string
           ends_at: string | null
           id: string
           instructor_id: string | null
@@ -212,6 +223,7 @@ export type Database = {
           expected_attendees?: number | null
           created_at?: string
           created_by?: string | null
+          center_id?: string
           ends_at?: string | null
           id?: string
           instructor_id?: string | null
@@ -281,6 +293,7 @@ export type Database = {
       members: {
         Row: {
           created_at: string
+          center_id: string
           email: string | null
           full_name: string
           id: string
@@ -292,6 +305,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          center_id?: string
           email?: string | null
           full_name: string
           id?: string
@@ -350,6 +364,7 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          center_id: string
           created_by: string | null
           credits_purchased: number
           credits_remaining: number
@@ -366,6 +381,7 @@ export type Database = {
         Insert: {
           amount?: number
           created_at?: string
+          center_id?: string
           created_by?: string | null
           credits_purchased: number
           credits_remaining: number
@@ -417,6 +433,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_center: { Args: { p_organization_id: string; p_name: string; p_address?: string | null }; Returns: string }
+      list_requestable_members: { Args: { p_center_id: string }; Returns: { id: string; full_name: string }[] }
+      create_session_request: { Args: { p_center_id: string; p_room_id: string; p_session_type: Database["public"]["Enums"]["lesson_type"]; p_title: string; p_private_member_id: string | null; p_starts_at: string; p_ends_at: string; p_expected_attendees: number; p_notes: string | null }; Returns: string }
       review_session_request: { Args: { p_request_id: string; p_approve: boolean; p_review_note?: string | null }; Returns: string | null }
     }
     Enums: {

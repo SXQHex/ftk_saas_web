@@ -79,6 +79,56 @@ alter table public.credit_transactions drop constraint if exists credit_transact
 alter table public.credit_transactions add constraint credit_transactions_lesson_center_fkey
   foreign key (lesson_id, center_id) references public.lessons(id, center_id) on delete restrict;
 
+-- Center ownership is immutable after a row is created; moving data requires an explicit migration.
+create or replace function app_private.prevent_center_reassignment()
+returns trigger language plpgsql set search_path to ''
+as $function$
+begin
+  if new.center_id is distinct from old.center_id then
+    raise exception 'Kayıt oluşturulduktan sonra merkez değiştirilemez.';
+  end if;
+  return new;
+end;
+$function$;
+drop trigger if exists members_center_immutable on public.members;
+create trigger members_center_immutable before update of center_id on public.members
+for each row execute function app_private.prevent_center_reassignment();
+drop trigger if exists lessons_center_immutable on public.lessons;
+create trigger lessons_center_immutable before update of center_id on public.lessons
+for each row execute function app_private.prevent_center_reassignment();
+drop trigger if exists rooms_center_immutable on public.rooms;
+create trigger rooms_center_immutable before update of center_id on public.rooms
+for each row execute function app_private.prevent_center_reassignment();
+
+create or replace function app_private.prevent_session_request_detail_changes()
+returns trigger language plpgsql set search_path to ''
+as $function$
+begin
+  if new.organization_id is distinct from old.organization_id
+    or new.center_id is distinct from old.center_id
+    or new.room_id is distinct from old.room_id
+    or new.instructor_id is distinct from old.instructor_id
+    or new.requested_by is distinct from old.requested_by
+    or new.session_type is distinct from old.session_type
+    or new.title is distinct from old.title
+    or new.private_member_id is distinct from old.private_member_id
+    or new.starts_at is distinct from old.starts_at
+    or new.ends_at is distinct from old.ends_at
+    or new.expected_attendees is distinct from old.expected_attendees
+    or new.notes is distinct from old.notes then
+    raise exception 'Talep ayrıntıları değiştirilemez; yeni talep oluşturun.';
+  end if;
+  return new;
+end;
+$function$;
+drop trigger if exists session_requests_details_immutable on public.session_requests;
+create trigger session_requests_details_immutable before update on public.session_requests
+for each row execute function app_private.prevent_session_request_detail_changes();
+
+alter table public.session_requests drop constraint if exists session_requests_private_member_center_fkey;
+alter table public.session_requests add constraint session_requests_private_member_center_fkey
+  foreign key (private_member_id, center_id) references public.members(id, center_id) on delete restrict;
+
 -- Legacy subscriptions/transactions are center-inherited on writes, never trusted from client input.
 create or replace function app_private.set_subscription_center()
 returns trigger language plpgsql security definer set search_path to ''
@@ -471,6 +521,7 @@ with check (
 );
 
 drop policy if exists session_requests_staff_read on public.session_requests;
+drop policy if exists session_requests_admin_update on public.session_requests;
 create policy session_requests_read_center_or_own on public.session_requests for select to authenticated
 using (
   requested_by = (select auth.uid())

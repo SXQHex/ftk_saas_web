@@ -6,9 +6,9 @@ import { Building2, CalendarClock, Check, DoorOpen, Plus, X } from "lucide-react
 import { PageNotice } from "@/components/page-notice";
 import { useActionRunner } from "@/components/use-action-runner";
 import {
-  createCenter, createOrganization, createRoom, createSessionRequest, grantCenterAdmin, listRequestableMembers, revokeCenterAdmin, reviewSessionRequest,
+  createCenter, createGroupProposal, createOrganization, createRoom, createSessionRequest, grantCenterAdmin, listRequestableMembers, revokeCenterAdmin, reviewSessionRequest,
 } from "@/lib/actions/session-requests";
-import type { CenterAdminOption, CenterOption, OrganizationOption, RoomOption, SessionRequestRow } from "@/lib/data/session-requests";
+import type { CenterAdminOption, CenterOption, InstructorOption, OrganizationOption, RoomOption, SessionRequestRow } from "@/lib/data/session-requests";
 
 function toIso(value: string) {
   const date = new Date(value);
@@ -20,13 +20,14 @@ function formatTime(value: string) {
 const statusText: Record<string, string> = { pending: "Onay bekliyor", approved: "Onaylandı", rejected: "Reddedildi", cancelled: "İptal" };
 
 export function SessionRequestsManager({
-  isAdmin, organizations, centers, rooms, admins, requests, loadError,
+  isAdmin, organizations, centers, rooms, admins, instructors, requests, loadError,
 }: {
   isAdmin: boolean;
   organizations: OrganizationOption[];
   centers: CenterOption[];
   rooms: RoomOption[];
   admins: CenterAdminOption[];
+  instructors: InstructorOption[];
   requests: SessionRequestRow[];
   loadError: boolean;
 }) {
@@ -39,17 +40,18 @@ export function SessionRequestsManager({
   const [capacity, setCapacity] = useState("20");
   const [adminCenter, setAdminCenter] = useState(centers[0]?.id ?? "");
   const [adminProfile, setAdminProfile] = useState("");
-  const [sessionType, setSessionType] = useState<"private" | "group">("private");
+  const sessionType = "private" as const;
+  const [assignedInstructorId, setAssignedInstructorId] = useState(instructors[0]?.id ?? "");
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
   const [roomId, setRoomId] = useState("");
-  const [title, setTitle] = useState("Özel ders");
+  const [title, setTitle] = useState(isAdmin ? "Grup dersi" : "Özel ders");
   const [memberId, setMemberId] = useState("");
   const [requestMembers, setRequestMembers] = useState<{ id: string; full_name: string }[]>([]);
   const [memberLoading, setMemberLoading] = useState(false);
   const [memberLoadError, setMemberLoadError] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
-  const [attendees, setAttendees] = useState("1");
+  const [attendees, setAttendees] = useState(isAdmin ? "20" : "1");
   const [notes, setNotes] = useState("");
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const { busy, error, notice, setError, reset, run } = useActionRunner();
@@ -59,7 +61,7 @@ export function SessionRequestsManager({
     setRequestMembers([]);
     setMemberId("");
     setMemberLoadError("");
-    if (isAdmin || sessionType !== "private" || !centerId) {
+    if (isAdmin || !centerId) {
       setMemberLoading(false);
       return () => { active = false; };
     }
@@ -72,7 +74,7 @@ export function SessionRequestsManager({
       if (active) setMemberLoading(false);
     });
     return () => { active = false; };
-  }, [centerId, sessionType, isAdmin]);
+  }, [centerId, isAdmin]);
 
   const centerRooms = rooms.filter((room) => room.center_id === centerId);
 
@@ -102,13 +104,29 @@ export function SessionRequestsManager({
     reset();
     if (!roomId) { setError("Talep için bir oda seçin."); return; }
     if (!startsAt || !endsAt || Date.parse(endsAt) <= Date.parse(startsAt)) { setError("Bitiş saati başlangıçtan sonra olmalı."); return; }
-    await run(() => createSessionRequest({
-      center_id: centerId, room_id: roomId, session_type: sessionType, title,
-      private_member_id: sessionType === "private" ? memberId || null : null,
-      starts_at: toIso(startsAt), ends_at: toIso(endsAt),
-      expected_attendees: Number(attendees), notes: notes || null,
-    }), {
-      onSuccess: () => { setStartsAt(""); setEndsAt(""); setNotes(""); setMemberId(""); setAttendees(sessionType === "private" ? "1" : "20"); },
+    const request = {
+      center_id: centerId,
+      room_id: roomId,
+      session_type: isAdmin ? "group" as const : "private" as const,
+      title,
+      private_member_id: isAdmin ? null : memberId || null,
+      starts_at: toIso(startsAt),
+      ends_at: toIso(endsAt),
+      expected_attendees: Number(attendees),
+      notes: notes || null,
+    };
+    if (isAdmin && !assignedInstructorId) { setError("Grup dersi için bir eğitmen atayın."); return; }
+    await run(() => isAdmin
+      ? createGroupProposal({ ...request, instructor_id: assignedInstructorId })
+      : createSessionRequest(request), {
+      onSuccess: () => {
+        setStartsAt("");
+        setEndsAt("");
+        setNotes("");
+        setMemberId("");
+        setTitle(isAdmin ? "Grup dersi" : "Özel ders");
+        setAttendees(isAdmin ? "20" : "1");
+      },
     });
   }
   async function review(id: string, approve: boolean) {
@@ -155,6 +173,25 @@ export function SessionRequestsManager({
         </section>
       )}
 
+      {isAdmin && (
+        <section className="form-card">
+          <div className="form-card-heading"><div><h2><CalendarClock size={18} /> Grup dersi taslağı</h2><p>Yönetici eğitmeni atar. Taslak onaylanana kadar oda ve eğitmen rezerve edilmez.</p></div></div>
+          <form className="record-form" onSubmit={submitRequest}>
+            <div className="field-grid">
+              <label>Merkez *<select required value={centerId} onChange={(e) => { setCenterId(e.target.value); setRoomId(""); }}><option value="">Merkez seçin</option>{centers.map((center) => <option key={center.id} value={center.id}>{center.name}</option>)}</select></label>
+              <label>İstenen oda *<select required value={roomId} onChange={(e) => setRoomId(e.target.value)}><option value="">Oda seçin</option>{centerRooms.map((room) => <option key={room.id} value={room.id}>{room.name} · kapasite {room.capacity}</option>)}</select></label>
+              <label>Eğitmen ata *<select required value={assignedInstructorId} onChange={(e) => setAssignedInstructorId(e.target.value)}><option value="">Eğitmen seçin</option>{instructors.map((instructor) => <option key={instructor.id} value={instructor.id}>{instructor.full_name || "İsimsiz eğitmen"}</option>)}</select></label>
+              <label>Seans adı *<input required maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
+              <label>Katılımcı sayısı *<input required type="number" min="1" max="500" value={attendees} onChange={(e) => setAttendees(e.target.value)} /></label>
+              <label>Başlangıç *<input required type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} /></label>
+              <label>Bitiş *<input required type="datetime-local" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></label>
+              <label className="field-wide">Notlar<textarea rows={2} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="İsteğe bağlı" /></label>
+            </div>
+            <div className="form-actions"><button className="primary-action" disabled={busy}>{busy ? "Taslak oluşturuluyor…" : "Grup dersi taslağı oluştur"}</button></div>
+          </form>
+        </section>
+      )}
+
       {!isAdmin && (
         <section className="form-card">
           <div className="form-card-heading"><div><h2><CalendarClock size={18} /> Yeni seans talebi</h2><p>Talep diğer bekleyen talepleri engellemez; seçilen oda yalnızca onayda rezerve edilir.</p></div></div>
@@ -163,9 +200,9 @@ export function SessionRequestsManager({
               <div className="field-grid">
                 <label>Merkez *<select required value={centerId} onChange={(e) => { setCenterId(e.target.value); setRoomId(""); }}><option value="">Merkez seçin</option>{centers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
                 <label>İstenen oda *<select required value={roomId} onChange={(e) => setRoomId(e.target.value)}><option value="">Oda seçin</option>{centerRooms.map((r) => <option key={r.id} value={r.id}>{r.name} · kapasite {r.capacity}</option>)}</select></label>
-                <label>Seans türü *<select value={sessionType} onChange={(e) => { const type = e.target.value as "private" | "group"; setSessionType(type); setTitle(type === "private" ? "Özel ders" : "Grup dersi"); setAttendees(type === "private" ? "1" : "20"); }}><option value="private">Özel ders</option><option value="group">Grup dersi</option></select></label>
+                
                 <label>Seans adı *<input required maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-                {sessionType === "private" && <label>Üye *<select required disabled={memberLoading || !centerId} value={memberId} onChange={(e) => setMemberId(e.target.value)}><option value="">{memberLoading ? "Üyeler yükleniyor…" : "Üye seçin"}</option>{requestMembers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}</select>{memberLoadError && <small>{memberLoadError}</small>}</label>}
+                {<label>Üye *<select required disabled={memberLoading || !centerId} value={memberId} onChange={(e) => setMemberId(e.target.value)}><option value="">{memberLoading ? "Üyeler yükleniyor…" : "Üye seçin"}</option>{requestMembers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}</select>{memberLoadError && <small>{memberLoadError}</small>}</label>}
                 <label>Katılımcı sayısı *<input required type="number" min="1" max="500" value={attendees} onChange={(e) => setAttendees(e.target.value)} /></label>
                 <label>Başlangıç *<input required type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} /></label>
                 <label>Bitiş *<input required type="datetime-local" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></label>

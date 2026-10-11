@@ -48,7 +48,7 @@ export async function createCenter(input: unknown): Promise<ActionResult> {
   const { supabase } = await requireRole(["admin"]);
   const parsed = parseInput(centerSchema, input);
   if (parsed.failure) return parsed.failure;
-  const { error } = await supabase.from("centers").insert(parsed.data);
+  const { error } = await supabase.rpc("create_center", { p_organization_id: parsed.data.organization_id, p_name: parsed.data.name, p_address: parsed.data.address });
   if (error) return fail(dbErrorMessage(error, "Merkez oluşturulamadı."));
   refresh();
   return ok("Merkez oluşturuldu.");
@@ -64,26 +64,31 @@ export async function createRoom(input: unknown): Promise<ActionResult> {
   return ok("Oda oluşturuldu.");
 }
 
+export async function listRequestableMembers(centerId: string): Promise<{ ok: true; rows: { id: string; full_name: string }[] } | { ok: false; error: string }> {
+  const { supabase } = await requireRole(["instructor"]);
+  const parsed = parseInput(uuid, centerId);
+  if (parsed.failure) return { ok: false, error: parsed.failure.error };
+  const { data, error } = await supabase.rpc("list_requestable_members", { p_center_id: parsed.data });
+  if (error) return { ok: false, error: dbErrorMessage(error, "Bu merkez için üye listesi alınamadı.") };
+  return { ok: true, rows: data ?? [] };
+}
+
 export async function createSessionRequest(input: unknown): Promise<ActionResult> {
-  const { supabase, userId } = await requireRole(["instructor"]);
+  const { supabase } = await requireRole(["instructor"]);
   const parsed = parseInput(requestSchema, input);
   if (parsed.failure) return parsed.failure;
-  const { data: center, error: centerError } = await supabase.from("centers")
-    .select("id, organization_id, is_active").eq("id", parsed.data.center_id).maybeSingle();
-  if (centerError || !center || !center.is_active) return fail("Merkez bulunamadı veya kullanılamıyor.");
-  if (parsed.data.room_id) {
-    const { data: room } = await supabase.from("rooms").select("id").eq("id", parsed.data.room_id)
-      .eq("center_id", center.id).eq("is_active", true).maybeSingle();
-    if (!room) return fail("Seçilen oda bu merkeze ait değil veya kullanılamıyor.");
-  }
-  const { error } = await supabase.from("session_requests").insert({
-    ...parsed.data,
-    organization_id: center.organization_id,
-    instructor_id: userId,
-    requested_by: userId,
-    status: "pending",
+  const { data, error } = await supabase.rpc("create_session_request", {
+    p_center_id: parsed.data.center_id,
+    p_room_id: parsed.data.room_id,
+    p_session_type: parsed.data.session_type,
+    p_title: parsed.data.title,
+    p_private_member_id: parsed.data.private_member_id,
+    p_starts_at: parsed.data.starts_at,
+    p_ends_at: parsed.data.ends_at,
+    p_expected_attendees: parsed.data.expected_attendees,
+    p_notes: parsed.data.notes,
   });
-  if (error) return fail(dbErrorMessage(error, "Seans talebi oluşturulamadı."));
+  if (error || !data) return fail(dbErrorMessage(error, "Seans talebi oluşturulamadı."));
   refresh();
   return ok("Talep yöneticiye iletildi. Onaylanana kadar oda rezerve edilmez.");
 }

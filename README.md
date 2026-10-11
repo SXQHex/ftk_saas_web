@@ -30,7 +30,7 @@ lib/
   actions/                Server Actions: every write goes through here
   data/                   typed read queries with server-side search + pagination
 components/               shared UI pieces (filters, pagination, notices, action hook)
-supabase/                 schema snapshot, migrations, proposed drafts
+supabase/                 schema snapshot and migrations (center-level isolation and room booking)
 tests/                    unit tests (npm test)
 ```
 
@@ -49,8 +49,8 @@ See [docs/initial-admin-setup.md](docs/initial-admin-setup.md) to securely promo
 ## Application modules
 
 - Dashboard overview
-- Member list, edit and active/inactive status (admin)
-- Lesson planning and status controls (admin); read-only calendar for instructors
+- Center-scoped member list, edit and active/inactive status (admin)
+- Center-scoped lesson planning and status controls (admin); instructors submit non-blocking room/session requests for manager approval
 - Attendance entry (admin/instructor); credit consumption runs through database triggers
 - Subscriptions and payment status (admin)
 - Credit transaction ledger and audited manual adjustments (admin)

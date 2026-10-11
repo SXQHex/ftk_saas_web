@@ -17,6 +17,7 @@ export default async function SessionRequestsPage() {
       organizations={resources.organizations}
       centers={resources.centers}
       rooms={resources.rooms}
+      admins={resources.admins}
       requests={requestList.rows}
       loadError={resources.error || requestList.error}
     />

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync("supabase/migrations/20261011210000_complete_center_isolation.sql", "utf8");
 const tenancy = readFileSync("supabase/migrations/20261011200000_center_level_tenancy.sql", "utf8");
 const booking = readFileSync("supabase/migrations/20261011190000_session_rooms_and_requests.sql", "utf8");
+const baseline = readFileSync("supabase/schema/00_baseline_snapshot.sql", "utf8");
 
 describe("center-level isolation migration contract", () => {
   it("limits instructor member lookups to members in assigned scheduled/completed sessions", () => {
@@ -25,14 +26,29 @@ describe("center-level isolation migration contract", () => {
     expect(rpc).toContain("revoke all on function public.create_session_request");
   });
 
-  it("keeps center isolation on members, subscriptions, lessons, attendance and credits", () => {
-    for (const table of ["members", "subscriptions", "lessons", "attendance", "credit_transactions"]) {
-      expect(tenancy).toContain(`app_private.is_center_admin(center_id)`);
-      expect(tenancy).toContain(`public.${table}`);
-    }
+  it("keeps each business table behind center-scoped RLS policies", () => {
+    const policies = [
+      "create policy members_admin_manage on public.members",
+      "create policy subscriptions_admin_manage on public.subscriptions",
+      "create policy lessons_admin_manage on public.lessons",
+      "create policy attendance_read_center_or_own on public.attendance",
+      "create policy credit_transactions_read_center_or_own on public.credit_transactions",
+    ];
+    for (const policy of policies) expect(tenancy).toContain(policy);
     expect(tenancy).toContain("subscriptions_member_center_fkey");
+    expect(tenancy).toContain("attendance_member_center_fkey");
     expect(tenancy).toContain("attendance_lesson_center_fkey");
     expect(tenancy).toContain("credit_transactions_subscription_center_fkey");
+    expect(tenancy).toContain("credit_transactions_member_center_fkey");
+    expect(migration).toContain("profiles_read_self_or_admin");
+    expect(migration).not.toContain("profiles_read_self_or_staff");
+  });
+
+  it("applies manual credit adjustments atomically in the ledger trigger", () => {
+    const fn = baseline.match(/create or replace function app_private\\.apply_manual_credit_change[\\s\\S]*?\\$function\\$;/i)?.[0] ?? "";
+    expect(fn).toContain("credits_remaining + new.amount between 0 and credits_purchased");
+    expect(fn).toContain("if not found then");
+    expect(fn).toContain("raise exception");
   });
 
   it("filters credit consumption to the lesson's center", () => {

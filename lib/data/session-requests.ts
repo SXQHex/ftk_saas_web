@@ -48,7 +48,7 @@ export async function listSessionRequests(supabase: ServerSupabase, isAdmin: boo
     instructorIds.length ? supabase.from("profiles").select("id, full_name").in("id", instructorIds) : Promise.resolve({ data: [] }),
     memberIds.length ? supabase.from("members").select("id, full_name").in("id", memberIds) : Promise.resolve({ data: [] }),
   ]);
-  const byId = <T extends { id: string; name?: string; full_name?: string }>(rows: T[] | null) => new Map((rows ?? []).map((row) => [row.id, row]));
+  const byId = <T extends { id: string; name?: string; full_name?: string }>(rows: T[] | null) => new Map((rows ?? []).map((row) => [row.id, row] as const));
   const centerMap = byId(centers.data as {id:string;name:string}[] | null);
   const roomMap = byId(rooms.data as {id:string;name:string}[] | null);
   const instructorMap = byId(instructors.data as {id:string;full_name:string}[] | null);

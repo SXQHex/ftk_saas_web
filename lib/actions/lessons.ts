@@ -31,7 +31,7 @@ export async function saveLesson(id: string | null, input: unknown): Promise<Act
   if (roomError || !room || !room.is_active || room.center_id !== data.center_id) {
     return fail("Seçilen oda belirtilen merkeze ait değil veya kullanılamıyor.");
   }
-  if (data.type === "group" && room.capacity < 1) return fail("Oda kapasitesi geçersiz.");
+  if (data.expected_attendees > room.capacity) return fail(`Katılımcı sayısı seçilen odanın kapasitesini (${room.capacity}) aşıyor.`);
 
   const result = id
     ? await supabase.from("lessons").update(data).eq("id", id)

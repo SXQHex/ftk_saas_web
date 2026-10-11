@@ -52,6 +52,19 @@ export async function grantCenterAdmin(input: unknown): Promise<ActionResult> {
   return ok("Merkez yöneticisi yetkilendirildi.");
 }
 
+export async function revokeCenterAdmin(input: unknown): Promise<ActionResult> {
+  const { supabase } = await requireRole(["admin"]);
+  const parsed = parseInput(centerAdminSchema, input);
+  if (parsed.failure) return parsed.failure;
+  const { error } = await supabase.rpc("revoke_center_admin", {
+    p_center_id: parsed.data.center_id,
+    p_profile_id: parsed.data.profile_id,
+  });
+  if (error) return fail(dbErrorMessage(error, "Merkez yöneticisi yetkisi kaldırılamadı."));
+  refresh();
+  return ok("Merkez yöneticisi yetkisi kaldırıldı.");
+}
+
 export async function createRoom(input: unknown): Promise<ActionResult> {
   const { supabase } = await requireRole(["admin"]);
   const parsed = parseInput(roomSchema, input);

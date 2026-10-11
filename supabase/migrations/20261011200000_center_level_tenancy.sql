@@ -290,7 +290,7 @@ returns uuid language plpgsql security definer set search_path to ''
 as $function$
 declare v_organization_id uuid; v_request_id uuid;
 begin
-  if (select app_private.current_role()) <> 'instructor'::public.app_role then
+  if (select app_private.current_role()) is distinct from 'instructor'::public.app_role then
     raise exception 'Seans talebini yalnızca eğitmen oluşturabilir.' using errcode = '42501';
   end if;
   if p_ends_at <= p_starts_at then raise exception 'Bitiş başlangıçtan sonra olmalıdır.'; end if;
@@ -376,6 +376,7 @@ end;
 $function$;
 
 -- Replace existing broad policies with center-scoped policies.
+drop policy if exists profiles_admin_manage on public.profiles;
 drop policy if exists center_admins_self_read on public.center_admins;
 create policy center_admins_self_read on public.center_admins for select to authenticated
 using (profile_id = (select auth.uid()));

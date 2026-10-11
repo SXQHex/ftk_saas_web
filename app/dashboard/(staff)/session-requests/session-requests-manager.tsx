@@ -40,7 +40,6 @@ export function SessionRequestsManager({
   const [capacity, setCapacity] = useState("20");
   const [adminCenter, setAdminCenter] = useState(centers[0]?.id ?? "");
   const [adminProfile, setAdminProfile] = useState("");
-  const sessionType = "private" as const;
   const [assignedInstructorId, setAssignedInstructorId] = useState(instructors[0]?.id ?? "");
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
   const [roomId, setRoomId] = useState("");
@@ -202,7 +201,7 @@ export function SessionRequestsManager({
                 <label>İstenen oda *<select required value={roomId} onChange={(e) => setRoomId(e.target.value)}><option value="">Oda seçin</option>{centerRooms.map((r) => <option key={r.id} value={r.id}>{r.name} · kapasite {r.capacity}</option>)}</select></label>
                 
                 <label>Seans adı *<input required maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-                {<label>Üye *<select required disabled={memberLoading || !centerId} value={memberId} onChange={(e) => setMemberId(e.target.value)}><option value="">{memberLoading ? "Üyeler yükleniyor…" : "Üye seçin"}</option>{requestMembers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}</select>{memberLoadError && <small>{memberLoadError}</small>}</label>}
+                <label>Üye *<select required disabled={memberLoading || !centerId} value={memberId} onChange={(e) => setMemberId(e.target.value)}><option value="">{memberLoading ? "Üyeler yükleniyor…" : "Üye seçin"}</option>{requestMembers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}</select>{memberLoadError && <small>{memberLoadError}</small>}</label>
                 <label>Katılımcı sayısı *<input required type="number" min="1" max="500" value={attendees} onChange={(e) => setAttendees(e.target.value)} /></label>
                 <label>Başlangıç *<input required type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} /></label>
                 <label>Bitiş *<input required type="datetime-local" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></label>

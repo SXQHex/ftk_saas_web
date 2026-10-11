@@ -45,7 +45,7 @@ describe("center-level isolation migration contract", () => {
   });
 
   it("applies manual credit adjustments atomically in the ledger trigger", () => {
-    const fn = baseline.match(/create or replace function app_private\\.apply_manual_credit_change[\\s\\S]*?\\$function\\$;/i)?.[0] ?? "";
+    const fn = baseline.match(/create or replace function app_private\.apply_manual_credit_change[\\s\\S]*?\\$function\\$;/i)?.[0] ?? "";
     expect(fn).toContain("credits_remaining + new.amount between 0 and credits_purchased");
     expect(fn).toContain("if not found then");
     expect(fn).toContain("raise exception");

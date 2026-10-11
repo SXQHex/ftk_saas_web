@@ -7,7 +7,7 @@ Organizations represent brands or business groups. They are not security boundar
 - Admins are assigned to centers through `center_admins`. The migration assigns existing admins to the existing data center to preserve access. Creating a center assigns its creator. A center manager can grant another admin access to that center.
 - Members belong to exactly one center. Their subscriptions, attendance and credit ledger rows inherit and must match that center.
 - Lessons belong to exactly one center. A room must belong to the same center, and a private lesson's member must also belong to that center.
-- Instructors are not granted center-wide write access. They can read their assigned lessons and their own requests, and may submit a proposal for a room. A small RPC returns only member IDs/names for the explicitly selected center to populate private-lesson requests.
+- Instructors are not granted center-wide write access. They can read their assigned lessons and requests assigned to them, and may submit private-lesson requests. Managers create group-session proposals and assign the instructor. A small RPC returns only member IDs/names for the explicitly selected center to populate private-lesson requests.
 - Pending requests do not reserve anything. The manager review function creates the scheduled lesson and marks the request approved in one transaction. Exclusion constraints prevent concurrent overlapping room or instructor reservations.
 - Group-credit consumption is filtered by the completed lesson's center, preventing credits in one center from being consumed by a lesson in another.
 

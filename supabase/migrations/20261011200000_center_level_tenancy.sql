@@ -461,4 +461,47 @@ alter table public.lessons drop constraint if exists lessons_private_member_cent
 alter table public.lessons add constraint lessons_private_member_center_fkey
   foreign key (private_member_id, center_id) references public.members(id, center_id) on delete restrict;
 
+
+-- The approval function is redefined after the center authorization helper exists.
+create or replace function public.review_session_request(p_request_id uuid, p_approve boolean, p_review_note text default null)
+returns uuid language plpgsql security invoker set search_path to ''
+as $function$
+declare
+  v_request public.session_requests%rowtype;
+  v_lesson_id uuid;
+begin
+  if (select app_private.current_role()) is distinct from 'admin'::public.app_role then
+    raise exception 'Bu işlem için yönetici yetkisi gerekir.' using errcode = '42501';
+  end if;
+  select * into v_request from public.session_requests where id = p_request_id for update;
+  if not found then raise exception 'Seans talebi bulunamadı.'; end if;
+  if not (select app_private.is_center_admin(v_request.center_id)) then
+    raise exception 'Bu merkezde yönetici yetkiniz yok.' using errcode = '42501';
+  end if;
+  if v_request.status <> 'pending' then raise exception 'Bu talep daha önce değerlendirilmiş.'; end if;
+  if not p_approve then
+    update public.session_requests set status = 'rejected', reviewed_by = (select auth.uid()),
+      reviewed_at = now(), review_note = p_review_note where id = p_request_id;
+    return null;
+  end if;
+  if not exists (select 1 from public.centers c where c.id = v_request.center_id and c.organization_id = v_request.organization_id and c.is_active)
+    or not exists (select 1 from public.rooms r where r.id = v_request.room_id and r.center_id = v_request.center_id and r.is_active) then
+    raise exception 'Merkez veya oda artık kullanılamıyor.';
+  end if;
+  if v_request.expected_attendees > (select r.capacity from public.rooms r where r.id = v_request.room_id) then
+    raise exception 'Katılımcı sayısı seçilen odanın kapasitesini aşıyor.';
+  end if;
+  insert into public.lessons(type, title, starts_at, ends_at, status, instructor_id, private_member_id, notes, created_by, center_id, room_id, expected_attendees)
+  values (v_request.session_type, v_request.title, v_request.starts_at, v_request.ends_at, 'scheduled',
+    v_request.instructor_id, v_request.private_member_id, v_request.notes, (select auth.uid()),
+    v_request.center_id, v_request.room_id, v_request.expected_attendees)
+  returning id into v_lesson_id;
+  update public.session_requests set status = 'approved', reviewed_by = (select auth.uid()),
+    reviewed_at = now(), review_note = p_review_note, approved_lesson_id = v_lesson_id where id = p_request_id;
+  return v_lesson_id;
+end;
+$function$;
+revoke all on function public.review_session_request(uuid, boolean, text) from public, anon;
+grant execute on function public.review_session_request(uuid, boolean, text) to authenticated;
+
 commit;

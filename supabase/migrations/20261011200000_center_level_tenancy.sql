@@ -262,6 +262,45 @@ $function$;
 revoke all on function public.grant_center_admin(uuid, uuid) from public, anon;
 grant execute on function public.grant_center_admin(uuid, uuid) to authenticated;
 
+create or replace function public.revoke_center_admin(p_center_id uuid, p_profile_id uuid)
+returns void language plpgsql security definer set search_path to ''
+as $function$
+declare v_count integer;
+begin
+  if (select app_private.current_role()) is distinct from 'admin'::public.app_role then
+    raise exception 'Bu işlem için yönetici yetkisi gerekir.' using errcode = '42501';
+  end if;
+  if not (select app_private.is_center_admin(p_center_id)) then
+    raise exception 'Bu merkezde yönetici yetkiniz yok.' using errcode = '42501';
+  end if;
+  select count(*) into v_count from public.center_admins where center_id = p_center_id;
+  if not exists (select 1 from public.center_admins where center_id = p_center_id and profile_id = p_profile_id) then
+    raise exception 'Bu yönetici seçilen merkezde yetkili değil.';
+  end if;
+  if v_count <= 1 then raise exception 'Merkezin en az bir yöneticisi kalmalıdır.'; end if;
+  delete from public.center_admins where center_id = p_center_id and profile_id = p_profile_id;
+end;
+$function$;
+revoke all on function public.revoke_center_admin(uuid, uuid) from public, anon;
+grant execute on function public.revoke_center_admin(uuid, uuid) to authenticated;
+
+create or replace function app_private.protect_room_capacity()
+returns trigger language plpgsql set search_path to ''
+as $function$
+begin
+  if exists (
+    select 1 from public.lessons l where l.room_id = old.id and l.status = 'scheduled'
+      and l.expected_attendees is not null and l.expected_attendees > new.capacity
+  ) then
+    raise exception 'Kapasite, kesinleşmiş bir seansın katılımcı sayısından düşük olamaz.';
+  end if;
+  return new;
+end;
+$function$;
+drop trigger if exists rooms_protect_scheduled_capacity on public.rooms;
+create trigger rooms_protect_scheduled_capacity before update of capacity on public.rooms
+for each row execute function app_private.protect_room_capacity();
+
 -- Session request member options expose only ID/name for one explicitly chosen active center.
 create or replace function public.list_requestable_members(p_center_id uuid)
 returns table(id uuid, full_name text)

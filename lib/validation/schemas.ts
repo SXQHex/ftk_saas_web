@@ -47,6 +47,8 @@ export const lessonSchema = z
     ends_at: isoDateTime.nullable(),
     instructor_id: uuid("Geçersiz eğitmen.").nullable(),
     private_member_id: uuid("Geçersiz üye.").nullable(),
+    center_id: uuid("Merkez seçin."),
+    room_id: uuid("Oda seçin."),
     notes: optionalText(2000, "Notlar"),
   })
   .superRefine((value, ctx) => {
@@ -55,6 +57,9 @@ export const lessonSchema = z
     }
     if (value.ends_at && Date.parse(value.ends_at) <= Date.parse(value.starts_at)) {
       ctx.addIssue({ code: "custom", path: ["ends_at"], message: "Bitiş zamanı başlangıçtan sonra olmalıdır." });
+    }
+    if (!value.ends_at) {
+      ctx.addIssue({ code: "custom", path: ["ends_at"], message: "Oda rezervasyonu için bitiş saati zorunludur." });
     }
   })
   .transform((value) => ({

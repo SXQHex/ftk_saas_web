@@ -192,6 +192,26 @@ $function$;
 revoke all on function public.create_center(uuid, text, text) from public, anon;
 grant execute on function public.create_center(uuid, text, text) to authenticated;
 
+create or replace function public.grant_center_admin(p_center_id uuid, p_profile_id uuid)
+returns void language plpgsql security definer set search_path to ''
+as $function$
+begin
+  if (select app_private.current_role()) is distinct from 'admin'::public.app_role then
+    raise exception 'Bu işlem için yönetici yetkisi gerekir.' using errcode = '42501';
+  end if;
+  if not (select app_private.is_center_admin(p_center_id)) then
+    raise exception 'Bu merkezde yönetici yetkiniz yok.' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.profiles p where p.id = p_profile_id and p.role = 'admin'::public.app_role) then
+    raise exception 'Yalnızca yönetici rolündeki profillere merkez yetkisi verilebilir.';
+  end if;
+  insert into public.center_admins(center_id, profile_id) values (p_center_id, p_profile_id)
+  on conflict do nothing;
+end;
+$function$;
+revoke all on function public.grant_center_admin(uuid, uuid) from public, anon;
+grant execute on function public.grant_center_admin(uuid, uuid) to authenticated;
+
 -- Session request member options expose only ID/name for one explicitly chosen active center.
 create or replace function public.list_requestable_members(p_center_id uuid)
 returns table(id uuid, full_name text)

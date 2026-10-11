@@ -4,7 +4,8 @@
 -- (ysplylnwdfwizmuxvcqg): tables, enums, constraints, indexes, functions, triggers and RLS
 -- policies. It already INCLUDES the effect of the migrations in ../migrations
 -- (fix_group_lesson_visibility_for_open_ended_packages and harden_attendance_and_credit_ledger_writes),
--- so a fresh database needs this file only; do not replay those two on top of it.
+-- so a fresh database needs this file only for the baseline. Newer room-booking and center-isolation
+-- migrations (20261011190000 and 20261011200000) are NOT included in this snapshot and must be tested/applied separately.
 --
 -- It replaces the three early migrations that were applied from the SQL editor and never saved here:
 --   20261009135234 mvp_school_membership_attendance

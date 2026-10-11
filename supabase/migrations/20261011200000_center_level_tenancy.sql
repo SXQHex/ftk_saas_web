@@ -168,7 +168,7 @@ $function$;
 grant execute on function app_private.is_center_admin(uuid) to authenticated;
 
 create or replace function public.create_center(p_organization_id uuid, p_name text, p_address text default null)
-returns uuid language plpgsql security invoker set search_path to ''
+returns uuid language plpgsql security definer set search_path to ''
 as $function$
 declare v_center_id uuid;
 begin
@@ -211,7 +211,7 @@ create or replace function public.create_session_request(
   p_private_member_id uuid, p_starts_at timestamptz, p_ends_at timestamptz,
   p_expected_attendees integer, p_notes text
 )
-returns uuid language plpgsql security invoker set search_path to ''
+returns uuid language plpgsql security definer set search_path to ''
 as $function$
 declare v_organization_id uuid; v_request_id uuid;
 begin

@@ -17,6 +17,7 @@ Organizations represent brands or business groups. They are not security boundar
 2. Review PR #3 and apply migrations to a Supabase branch or restored copy first:
    - `20261011190000_session_rooms_and_requests.sql`
    - `20261011200000_center_level_tenancy.sql`
+   - `20261011210000_complete_center_isolation.sql`
 3. Compare the resulting schema with `supabase/schema/00_baseline_snapshot.sql`, check migration history, and run Supabase security advisors.
 4. Verify RLS with separate admin accounts assigned to different centers, instructors, and student accounts. Do not test only as the database owner/service role.
 5. Only then schedule production migration with a backup and rollback plan.
@@ -30,10 +31,11 @@ Existing members, lessons, subscriptions, attendance and credit transactions are
 - Two admins assigned to different centers cannot read or mutate each other's members, subscriptions, lessons, attendance, credits, rooms, or requests.
 - A student can only access their own member, subscriptions, attendance and credits in their center.
 - An instructor cannot create a lesson directly, approve a request, or read other instructors' requests.
-- A private request must name an active member in the requested center and always has one attendee.
+- A private request must name an active member in the requested center, linked to a scheduled/completed session assigned to that instructor, and always has one attendee.
+- A pending request does not grant the instructor access to a member row or that member’s subscriptions/credits.
 - A group request can specify a larger attendee count, but must fit the room capacity on both request and approval.
 - Two overlapping requests may both remain pending. Approving one causes approval of an overlapping room or instructor request to fail without partially creating a lesson.
 - A completed lesson in center A never consumes subscriptions from center B.
 - Credit adjustment races and existing credit-ledger triggers should be tested with concurrent transactions.
 
-The migration is not applied to the live Supabase project by this pull request.
+The migrations are not applied to the live Supabase project by these pull requests. Unit tests that inspect the SQL security contract are not a substitute for running the migration on a Supabase branch and executing the two-center role matrix above.

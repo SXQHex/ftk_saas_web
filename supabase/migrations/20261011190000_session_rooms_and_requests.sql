@@ -211,12 +211,15 @@ declare
   v_request public.session_requests%rowtype;
   v_lesson_id uuid;
 begin
-  if (select app_private.current_role()) <> 'admin'::public.app_role then
+  if (select app_private.current_role()) is distinct from 'admin'::public.app_role then
     raise exception 'Bu işlem için yönetici yetkisi gerekir.' using errcode = '42501';
   end if;
 
   select * into v_request from public.session_requests where id = p_request_id for update;
   if not found then raise exception 'Seans talebi bulunamadı.'; end if;
+  if not (select app_private.is_center_admin(v_request.center_id)) then
+    raise exception 'Bu merkezde yönetici yetkiniz yok.' using errcode = '42501';
+  end if;
   if v_request.status <> 'pending' then raise exception 'Bu talep daha önce değerlendirilmiş.'; end if;
 
   if not p_approve then

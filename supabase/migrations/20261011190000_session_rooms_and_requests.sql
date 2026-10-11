@@ -40,6 +40,12 @@ alter table public.lessons
   add column if not exists room_id uuid references public.rooms(id) on delete restrict,
   add column if not exists expected_attendees integer not null default 1 check (expected_attendees between 1 and 500);
 
+alter table public.lessons drop constraint if exists lessons_room_center_fkey;
+alter table public.lessons add constraint lessons_room_center_fkey
+  foreign key (room_id, center_id) references public.rooms(id, center_id) on delete restrict;
+alter table public.lessons drop constraint if exists lessons_room_requires_center;
+alter table public.lessons add constraint lessons_room_requires_center check (room_id is null or center_id is not null);
+
 alter table public.lessons drop constraint if exists lessons_private_expected_attendees;
 alter table public.lessons add constraint lessons_private_expected_attendees check (type <> 'private'::public.lesson_type or expected_attendees = 1);
 
@@ -67,6 +73,13 @@ create table if not exists public.session_requests (
   check (session_type <> 'private' or expected_attendees = 1),
   check ((session_type = 'private' and private_member_id is not null) or (session_type = 'group' and private_member_id is null))
 );
+
+alter table public.session_requests drop constraint if exists session_requests_room_center_fkey;
+alter table public.session_requests add constraint session_requests_room_center_fkey
+  foreign key (room_id, center_id) references public.rooms(id, center_id) on delete restrict;
+alter table public.session_requests drop constraint if exists session_requests_center_organization_fkey;
+alter table public.session_requests add constraint session_requests_center_organization_fkey
+  foreign key (center_id, organization_id) references public.centers(id, organization_id) on delete restrict;
 
 create index if not exists session_requests_center_time_idx
   on public.session_requests(center_id, starts_at, ends_at) where status = 'pending';
@@ -154,6 +167,11 @@ create or replace function app_private.prevent_session_resource_overlap()
 returns trigger language plpgsql set search_path to ''
 as $function$
 begin
+  if new.status = 'scheduled' and new.room_id is not null then
+    if new.expected_attendees > (select r.capacity from public.rooms r where r.id = new.room_id) then
+      raise exception 'Katılımcı sayısı seçilen odanın kapasitesini aşıyor.';
+    end if;
+  end if;
   if new.status = 'scheduled' and new.ends_at is not null then
     if new.room_id is not null and exists (
       select 1 from public.lessons l

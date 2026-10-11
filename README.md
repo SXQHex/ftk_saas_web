@@ -15,6 +15,33 @@ Next.js frontend for the dance-school management app. Supabase is the authentica
 4. Run `pnpm dev` (or `npm run dev`).
 5. Run `npm run lint` to check JavaScript and TypeScript with Biome.
 
+## Project structure
+
+```
+app/
+  dashboard/
+    layout.tsx            session lookup + shell
+    page.tsx              role-based overview (student view in _components/)
+    (staff)/              admin + instructor pages (route group, URLs unchanged)
+      members | lessons | attendance | subscriptions | credits
+lib/
+  supabase/               typed clients, cached session (getSession), requireRole
+  validation/             zod schemas shared by Server Actions and tests
+  actions/                Server Actions: every write goes through here
+  data/                   typed read queries with server-side search + pagination
+components/               shared UI pieces (filters, pagination, notices, action hook)
+supabase/                 schema snapshot, migrations, proposed drafts
+tests/                    unit tests (npm test)
+```
+
+Data flow: pages read through `lib/data`, forms call Server Actions in `lib/actions`, which validate with
+`lib/validation`, re-check the role with `requireRole`, and then write through the user's own Supabase session so
+RLS still applies. `created_by` / `checked_in_by` always come from the session, never from the browser.
+
+## Scripts
+
+`npm run lint`, `npm run typecheck`, `npm test`, `npm run build`.
+
 ## Admin setup
 
 See [docs/initial-admin-setup.md](docs/initial-admin-setup.md) to securely promote the intended owner profile through the Supabase SQL Editor. Public sign-up remains `student` by default.

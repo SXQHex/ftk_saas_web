@@ -3,8 +3,8 @@
 ## Applied database changes
 
 StudioSaaS has both production hardening migrations applied:
-- `fix_group_lesson_visibility_for_open_ended_packages`: student SELECT policy accepts group packages with `ends_on IS NULL`; see [SQL](database-migrations/20261010030941_fix_group_lesson_visibility_for_open_ended_packages.sql).
-- `harden_attendance_and_credit_ledger_writes`: validates attendance lesson/member combinations in RLS, prevents attendance updates in favour of admin delete + validated re-insert, makes credit transactions append-only for authenticated clients, and rejects direct API updates to credit balances; see [SQL](database-migrations/20261010032120_harden_attendance_and_credit_ledger_writes.sql).
+- `fix_group_lesson_visibility_for_open_ended_packages`: student SELECT policy accepts group packages with `ends_on IS NULL`; see [SQL](../supabase/migrations/20261010030941_fix_group_lesson_visibility_for_open_ended_packages.sql).
+- `harden_attendance_and_credit_ledger_writes`: validates attendance lesson/member combinations in RLS, prevents attendance updates in favour of admin delete + validated re-insert, makes credit transactions append-only for authenticated clients, and rejects direct API updates to credit balances; see [SQL](../supabase/migrations/20261010032120_harden_attendance_and_credit_ledger_writes.sql).
 
 Existing attendance has a unique index on `(lesson_id, member_id)`, and lesson credit consumption has a unique partial index on `(subscription_id, lesson_id)` for `lesson_use`, preserving idempotency.
 
@@ -38,4 +38,4 @@ The app route `/auth/confirm` validates `token_hash` using Supabase SSR and writ
 
 ## Migration tracking
 
-Three earlier StudioSaaS migrations predate SQL files in this repository. Do not treat the two hardening files as a complete fresh-database bootstrap until the original baseline migrations are reconstructed or the database is provisioned through a controlled export.
+Three earlier StudioSaaS migrations were applied without saving their SQL. `supabase/schema/00_baseline_snapshot.sql` is a reconstruction of the live schema (including the two hardening migrations) and is the file to use for a fresh database; see [supabase/README.md](../supabase/README.md). Run `supabase db diff --linked` occasionally to confirm it still matches production.

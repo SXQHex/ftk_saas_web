@@ -40,6 +40,9 @@ alter table public.lessons
   add column if not exists room_id uuid references public.rooms(id) on delete restrict,
   add column if not exists expected_attendees integer not null default 1 check (expected_attendees between 1 and 500);
 
+alter table public.lessons drop constraint if exists lessons_private_expected_attendees;
+alter table public.lessons add constraint lessons_private_expected_attendees check (type <> 'private'::public.lesson_type or expected_attendees = 1);
+
 create table if not exists public.session_requests (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete restrict,
@@ -61,6 +64,7 @@ create table if not exists public.session_requests (
   approved_lesson_id uuid references public.lessons(id) on delete set null,
   created_at timestamptz not null default now(),
   check (ends_at > starts_at),
+  check (session_type <> 'private' or expected_attendees = 1),
   check ((session_type = 'private' and private_member_id is not null) or (session_type = 'group' and private_member_id is null))
 );
 

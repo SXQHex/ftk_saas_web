@@ -36,6 +36,15 @@ The app route `/auth/confirm` validates `token_hash` using Supabase SSR and writ
 - The Supabase Security Advisor previously reported leaked-password protection disabled. Check StudioSaaS Authentication > Password/Security settings and enable it if available. Guide: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
 - Confirm email verification and rate limits fit the intended account-provisioning policy. The owner account has the admin role, but email confirmation status should be checked before production use.
 
+## Center-level isolation and room booking (pending)
+
+The migrations `20261011190000_session_rooms_and_requests.sql` and
+`20261011200000_center_level_tenancy.sql` are in the feature pull request and **have not been applied to production**.
+Organizations group brands; the center is the data-isolation boundary. Before rollout, test with separate admin
+accounts assigned to separate centers, instructors, and students. Review
+[the rollout checklist](./center-level-isolation-and-room-rollout.md), assign rooms to upcoming legacy lessons,
+and verify group-credit consumption cannot cross centers.
+
 ## Migration tracking
 
 Three earlier StudioSaaS migrations were applied without saving their SQL. `supabase/schema/00_baseline_snapshot.sql` is a reconstruction of the live schema (including the two hardening migrations) and is the file to use for a fresh database; see [supabase/README.md](../supabase/README.md). Run `supabase db diff --linked` occasionally to confirm it still matches production.

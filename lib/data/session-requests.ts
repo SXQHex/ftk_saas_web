@@ -5,6 +5,7 @@ export type OrganizationOption = Pick<Tables<"organizations">, "id" | "name" | "
 export type CenterOption = Pick<Tables<"centers">, "id" | "organization_id" | "name" | "address">;
 export type RoomOption = Pick<Tables<"rooms">, "id" | "center_id" | "name" | "capacity">;
 export type CenterAdminOption = Pick<Tables<"profiles">, "id" | "full_name">;
+export type InstructorOption = Pick<Tables<"profiles">, "id" | "full_name">;
 export type SessionRequestRow = Pick<
   Tables<"session_requests">,
   "id" | "organization_id" | "center_id" | "room_id" | "instructor_id" | "session_type" | "title" |

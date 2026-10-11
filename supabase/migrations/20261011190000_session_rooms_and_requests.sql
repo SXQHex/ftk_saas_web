@@ -37,7 +37,8 @@ create table if not exists public.rooms (
 
 alter table public.lessons
   add column if not exists center_id uuid references public.centers(id) on delete restrict,
-  add column if not exists room_id uuid references public.rooms(id) on delete restrict;
+  add column if not exists room_id uuid references public.rooms(id) on delete restrict,
+  add column if not exists expected_attendees integer not null default 1 check (expected_attendees between 1 and 500);
 
 create table if not exists public.session_requests (
   id uuid primary key default gen_random_uuid(),
@@ -206,9 +207,9 @@ begin
     raise exception 'Katılımcı sayısı seçilen odanın kapasitesini aşıyor.';
   end if;
 
-  insert into public.lessons(type, title, starts_at, ends_at, status, instructor_id, private_member_id, notes, created_by, center_id, room_id)
+  insert into public.lessons(type, title, starts_at, ends_at, status, instructor_id, private_member_id, notes, created_by, center_id, room_id, expected_attendees)
   values (v_request.session_type, v_request.title, v_request.starts_at, v_request.ends_at, 'scheduled',
-    v_request.instructor_id, v_request.private_member_id, v_request.notes, (select auth.uid()), v_request.center_id, v_request.room_id)
+    v_request.instructor_id, v_request.private_member_id, v_request.notes, (select auth.uid()), v_request.center_id, v_request.room_id, v_request.expected_attendees)
   returning id into v_lesson_id;
 
   update public.session_requests

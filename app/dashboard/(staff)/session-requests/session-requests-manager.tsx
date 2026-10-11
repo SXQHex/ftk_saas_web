@@ -147,24 +147,24 @@ export function SessionRequestsManager({
           <div className="field-grid">
             <form className="record-form" onSubmit={submitOrganization}>
               <label>Yeni organizasyon<input required maxLength={160} value={orgName} onChange={(e) => setOrgName(e.target.value)} placeholder="Marka / işletme adı" /></label>
-              <button className="secondary-action" disabled={busy || !orgName.trim()}><Plus size={16} /> Organizasyon ekle</button>
+              <button type="submit" className="secondary-action" disabled={busy || !orgName.trim()}><Plus size={16} /> Organizasyon ekle</button>
             </form>
             <form className="record-form" onSubmit={submitCenter}>
               <label>Organizasyon<select required value={centerOrg} onChange={(e) => setCenterOrg(e.target.value)}><option value="">Organizasyon seçin</option>{organizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
               <label>Merkez adı<input required maxLength={160} value={centerName} onChange={(e) => setCenterName(e.target.value)} placeholder="Örn. Merkez şube" /></label>
               <label>Adres<input value={centerAddress} onChange={(e) => setCenterAddress(e.target.value)} maxLength={500} placeholder="İsteğe bağlı adres" /></label>
-              <button className="secondary-action" disabled={busy || !centerOrg || !centerName.trim()}><Plus size={16} /> Merkez ekle</button>
+              <button type="submit" className="secondary-action" disabled={busy || !centerOrg || !centerName.trim()}><Plus size={16} /> Merkez ekle</button>
             </form>
             <form className="record-form" onSubmit={submitRoom}>
               <label>Merkez<select required value={roomCenter} onChange={(e) => setRoomCenter(e.target.value)}><option value="">Merkez seçin</option>{centers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select></label>
               <label>Oda adı<input required maxLength={120} value={roomName} onChange={(e) => setRoomName(e.target.value)} placeholder="Örn. Salon A" /></label>
               <label>Kapasite<input required type="number" min="1" max="500" value={capacity} onChange={(e) => setCapacity(e.target.value)} /></label>
-              <button className="secondary-action" disabled={busy || !roomCenter || !roomName.trim()}><Plus size={16} /> Oda ekle</button>
+              <button type="submit" className="secondary-action" disabled={busy || !roomCenter || !roomName.trim()}><Plus size={16} /> Oda ekle</button>
             </form>
             <form className="record-form" onSubmit={submitCenterAdmin}>
               <label>Merkez<select required value={adminCenter} onChange={(e) => setAdminCenter(e.target.value)}><option value="">Merkez seçin</option>{centers.map((center) => <option key={center.id} value={center.id}>{center.name}</option>)}</select></label>
               <label>Yönetici<select required value={adminProfile} onChange={(e) => setAdminProfile(e.target.value)}><option value="">Yönetici seçin</option>{admins.map((admin) => <option key={admin.id} value={admin.id}>{admin.full_name || "İsimsiz yönetici"}</option>)}</select></label>
-              <button className="secondary-action" disabled={busy || !adminCenter || !adminProfile}><Plus size={16} /> Merkez yöneticisi ata</button>
+              <button type="submit" className="secondary-action" disabled={busy || !adminCenter || !adminProfile}><Plus size={16} /> Merkez yöneticisi ata</button>
               <button className="secondary-action" type="button" disabled={busy || !adminCenter || !adminProfile} onClick={() => void run(() => revokeCenterAdmin({ center_id: adminCenter, profile_id: adminProfile }), { onSuccess: () => setAdminProfile("") })}>Yönetici erişimini kaldır</button>
             </form>
           </div>
@@ -186,7 +186,7 @@ export function SessionRequestsManager({
               <label>Bitiş *<input required type="datetime-local" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></label>
               <label className="field-wide">Notlar<textarea rows={2} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="İsteğe bağlı" /></label>
             </div>
-            <div className="form-actions"><button className="primary-action" disabled={busy}>{busy ? "Taslak oluşturuluyor…" : "Grup dersi taslağı oluştur"}</button></div>
+            <div className="form-actions"><button type="submit" className="primary-action" disabled={busy}>{busy ? "Taslak oluşturuluyor…" : "Grup dersi taslağı oluştur"}</button></div>
           </form>
         </section>
       )}
@@ -207,7 +207,7 @@ export function SessionRequestsManager({
                 <label>Bitiş *<input required type="datetime-local" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></label>
                 <label className="field-wide">Notlar<textarea rows={2} maxLength={2000} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="İsteğe bağlı" /></label>
               </div>
-              <div className="form-actions"><button className="primary-action" disabled={busy}>{busy ? "İletiliyor…" : "Onay için talep oluştur"}</button></div>
+              <div className="form-actions"><button type="submit" className="primary-action" disabled={busy}>{busy ? "İletiliyor…" : "Onay için talep oluştur"}</button></div>
             </form>
           )}
         </section>

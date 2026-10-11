@@ -45,6 +45,8 @@ alter table public.lessons add constraint lessons_room_center_fkey
   foreign key (room_id, center_id) references public.rooms(id, center_id) on delete restrict;
 alter table public.lessons drop constraint if exists lessons_room_requires_center;
 alter table public.lessons add constraint lessons_room_requires_center check (room_id is null or center_id is not null);
+alter table public.lessons drop constraint if exists lessons_room_requires_end;
+alter table public.lessons add constraint lessons_room_requires_end check (room_id is null or ends_at is not null);
 
 alter table public.lessons drop constraint if exists lessons_private_expected_attendees;
 alter table public.lessons add constraint lessons_private_expected_attendees check (expected_attendees is null or type <> 'private'::public.lesson_type or expected_attendees = 1);

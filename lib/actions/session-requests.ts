@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { sessionRequestSchema } from "@/lib/validation/session-request";
 import { requireRole } from "@/lib/supabase/access";
 import { type ActionResult, dbErrorMessage, fail, ok, parseInput } from "./result";
 
@@ -11,23 +12,6 @@ const resourceSchema = z.object({ name: label });
 const centerSchema = z.object({ organization_id: uuid, name: label, address: z.string().trim().max(500).nullable() });
 const roomSchema = z.object({ center_id: uuid, name: z.string().trim().min(1).max(120), capacity: z.number().int().min(1).max(500) });
 const centerAdminSchema = z.object({ center_id: uuid, profile_id: uuid });
-const requestSchema = z.object({
-  center_id: uuid,
-  room_id: uuid,
-  session_type: z.enum(["private", "group"]),
-  title: label,
-  private_member_id: uuid.nullable(),
-  starts_at: z.string().datetime(),
-  ends_at: z.string().datetime(),
-  expected_attendees: z.number().int().min(1).max(500),
-  notes: z.string().trim().max(2000).nullable(),
-}).superRefine((v, ctx) => {
-  if (Date.parse(v.ends_at) <= Date.parse(v.starts_at)) ctx.addIssue({ code: "custom", path: ["ends_at"], message: "Bitiş saati başlangıçtan sonra olmalı." });
-  if (v.session_type === "private" && !v.private_member_id) ctx.addIssue({ code: "custom", path: ["private_member_id"], message: "Özel ders için üye seçin." });
-  if (v.session_type === "private" && v.expected_attendees !== 1) ctx.addIssue({ code: "custom", path: ["expected_attendees"], message: "Özel ders için katılımcı sayısı 1 olmalıdır." });
-  if (v.session_type === "group" && v.private_member_id) ctx.addIssue({ code: "custom", path: ["private_member_id"], message: "Grup dersinde özel üye seçilemez." });
-});
-
 function refresh() {
   revalidatePath("/dashboard/session-requests");
   revalidatePath("/dashboard/lessons");
@@ -89,7 +73,7 @@ export async function listRequestableMembers(centerId: string): Promise<{ ok: tr
 
 export async function createSessionRequest(input: unknown): Promise<ActionResult> {
   const { supabase } = await requireRole(["instructor"]);
-  const parsed = parseInput(requestSchema, input);
+  const parsed = parseInput(sessionRequestSchema, input);
   if (parsed.failure) return parsed.failure;
   const { data, error } = await supabase.rpc("create_session_request", {
     p_center_id: parsed.data.center_id,

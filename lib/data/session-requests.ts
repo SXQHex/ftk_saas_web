@@ -4,6 +4,7 @@ import type { Tables } from "@/lib/supabase/database.types";
 export type OrganizationOption = Pick<Tables<"organizations">, "id" | "name" | "slug">;
 export type CenterOption = Pick<Tables<"centers">, "id" | "organization_id" | "name" | "address">;
 export type RoomOption = Pick<Tables<"rooms">, "id" | "center_id" | "name" | "capacity">;
+export type CenterAdminOption = Pick<Tables<"profiles">, "id" | "full_name">;
 export type SessionRequestRow = Pick<
   Tables<"session_requests">,
   "id" | "organization_id" | "center_id" | "room_id" | "instructor_id" | "session_type" | "title" |
@@ -11,12 +12,13 @@ export type SessionRequestRow = Pick<
 > & { center_name: string; room_name: string | null; instructor_name: string; member_name: string | null };
 
 export async function listSchedulingResources(supabase: ServerSupabase) {
-  const [organizations, centers, rooms, members, instructors] = await Promise.all([
+  const [organizations, centers, rooms, members, instructors, admins] = await Promise.all([
     supabase.from("organizations").select("id, name, slug").eq("is_active", true).order("name"),
     supabase.from("centers").select("id, organization_id, name, address").eq("is_active", true).order("name"),
     supabase.from("rooms").select("id, center_id, name, capacity").eq("is_active", true).order("name"),
     supabase.from("members").select("id, full_name").eq("is_active", true).order("full_name").limit(1000),
     supabase.from("profiles").select("id, full_name").eq("role", "instructor").order("full_name"),
+    supabase.from("profiles").select("id, full_name").eq("role", "admin").order("full_name"),
   ]);
   return {
     organizations: (organizations.data ?? []) as OrganizationOption[],
@@ -24,7 +26,8 @@ export async function listSchedulingResources(supabase: ServerSupabase) {
     rooms: (rooms.data ?? []) as RoomOption[],
     members: members.data ?? [],
     instructors: instructors.data ?? [],
-    error: Boolean(organizations.error || centers.error || rooms.error || members.error || instructors.error),
+    admins: admins.data ?? [],
+    error: Boolean(organizations.error || centers.error || rooms.error || members.error || instructors.error || admins.error),
   };
 }
 

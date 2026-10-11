@@ -88,6 +88,32 @@ export async function listRequestableMembers(centerId: string): Promise<{ ok: tr
   return { ok: true, rows: data ?? [] };
 }
 
+export async function createGroupProposal(input: unknown): Promise<ActionResult> {
+  const { supabase } = await requireRole(["admin"]);
+  const parsed = parseInput(sessionRequestSchema, input);
+  if (parsed.failure) return parsed.failure;
+  const instructor = parseInput(z.object({ instructor_id: uuid }), input);
+  if (instructor.failure) return instructor.failure;
+  if (parsed.data.session_type !== "group" || parsed.data.private_member_id !== null) {
+    return fail("Yönetici yalnızca grup dersi taslağı oluşturabilir.");
+  }
+  const { error } = await supabase.rpc("create_session_request", {
+    p_center_id: parsed.data.center_id,
+    p_room_id: parsed.data.room_id,
+    p_session_type: "group",
+    p_title: parsed.data.title,
+    p_private_member_id: null,
+    p_starts_at: parsed.data.starts_at,
+    p_ends_at: parsed.data.ends_at,
+    p_expected_attendees: parsed.data.expected_attendees,
+    p_notes: parsed.data.notes,
+    p_instructor_id: instructor.data.instructor_id,
+  });
+  if (error) return fail(dbErrorMessage(error, "Grup dersi taslağı oluşturulamadı."));
+  refresh();
+  return ok("Grup dersi taslağı oluşturuldu. Onaylanana kadar oda rezerve edilmez.");
+}
+
 export async function createSessionRequest(input: unknown): Promise<ActionResult> {
   const { supabase } = await requireRole(["instructor"]);
   const parsed = parseInput(sessionRequestSchema, input);
@@ -102,6 +128,7 @@ export async function createSessionRequest(input: unknown): Promise<ActionResult
     p_ends_at: parsed.data.ends_at,
     p_expected_attendees: parsed.data.expected_attendees,
     p_notes: parsed.data.notes,
+    p_instructor_id: null,
   });
   if (error || !data) return fail(dbErrorMessage(error, "Seans talebi oluşturulamadı."));
   refresh();

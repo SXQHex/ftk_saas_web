@@ -10,6 +10,7 @@ const label = z.string().trim().min(1).max(160);
 const resourceSchema = z.object({ name: label });
 const centerSchema = z.object({ organization_id: uuid, name: label, address: z.string().trim().max(500).nullable() });
 const roomSchema = z.object({ center_id: uuid, name: z.string().trim().min(1).max(120), capacity: z.number().int().min(1).max(500) });
+const centerAdminSchema = z.object({ center_id: uuid, profile_id: uuid });
 const requestSchema = z.object({
   center_id: uuid,
   room_id: uuid,
@@ -52,6 +53,19 @@ export async function createCenter(input: unknown): Promise<ActionResult> {
   if (error) return fail(dbErrorMessage(error, "Merkez oluşturulamadı."));
   refresh();
   return ok("Merkez oluşturuldu.");
+}
+
+export async function grantCenterAdmin(input: unknown): Promise<ActionResult> {
+  const { supabase } = await requireRole(["admin"]);
+  const parsed = parseInput(centerAdminSchema, input);
+  if (parsed.failure) return parsed.failure;
+  const { error } = await supabase.rpc("grant_center_admin", {
+    p_center_id: parsed.data.center_id,
+    p_profile_id: parsed.data.profile_id,
+  });
+  if (error) return fail(dbErrorMessage(error, "Merkez yöneticisi atanamadı."));
+  refresh();
+  return ok("Merkez yöneticisi yetkilendirildi.");
 }
 
 export async function createRoom(input: unknown): Promise<ActionResult> {

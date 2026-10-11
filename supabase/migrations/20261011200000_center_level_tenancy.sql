@@ -122,11 +122,14 @@ for each row execute function app_private.set_attendance_center();
 create or replace function app_private.set_credit_transaction_center()
 returns trigger language plpgsql security definer set search_path to ''
 as $function$
-declare v_subscription_center uuid; v_member_center uuid; v_lesson_center uuid;
+declare v_subscription_center uuid; v_subscription_member uuid; v_member_center uuid; v_lesson_center uuid;
 begin
-  select s.center_id, s.member_id into v_subscription_center, new.member_id
+  select s.center_id, s.member_id into v_subscription_center, v_subscription_member
     from public.subscriptions s where s.id = new.subscription_id;
   if v_subscription_center is null then raise exception 'Abonelik bulunamadı.'; end if;
+  if new.member_id is distinct from v_subscription_member then
+    raise exception 'Kredi işlemi aboneliğin üyesiyle eşleşmiyor.';
+  end if;
   select m.center_id into v_member_center from public.members m where m.id = new.member_id;
   if v_member_center is null or v_member_center <> v_subscription_center then
     raise exception 'Kredi işlemi, abonelik ve üye aynı merkeze ait olmalıdır.';
@@ -172,7 +175,7 @@ returns uuid language plpgsql security definer set search_path to ''
 as $function$
 declare v_center_id uuid;
 begin
-  if (select app_private.current_role()) <> 'admin'::public.app_role then
+  if (select app_private.current_role()) is distinct from 'admin'::public.app_role then
     raise exception 'Bu işlem için yönetici yetkisi gerekir.' using errcode = '42501';
   end if;
   if length(trim(p_name)) not between 1 and 160 then raise exception 'Merkez adı geçersiz.'; end if;
@@ -186,6 +189,7 @@ begin
   return v_center_id;
 end;
 $function$;
+revoke all on function public.create_center(uuid, text, text) from public, anon;
 grant execute on function public.create_center(uuid, text, text) to authenticated;
 
 -- Session request member options expose only ID/name for one explicitly chosen active center.
@@ -194,7 +198,7 @@ returns table(id uuid, full_name text)
 language plpgsql stable security definer set search_path to ''
 as $function$
 begin
-  if (select app_private.current_role()) <> 'instructor'::public.app_role then
+  if (select app_private.current_role()) is distinct from 'instructor'::public.app_role then
     raise exception 'Bu liste yalnızca eğitmenler içindir.' using errcode = '42501';
   end if;
   if not exists (select 1 from public.centers c where c.id = p_center_id and c.is_active) then
@@ -204,6 +208,7 @@ begin
     where m.center_id = p_center_id and m.is_active order by m.full_name limit 1000;
 end;
 $function$;
+revoke all on function public.list_requestable_members(uuid) from public, anon;
 grant execute on function public.list_requestable_members(uuid) to authenticated;
 
 create or replace function public.create_session_request(
@@ -250,6 +255,7 @@ begin
   return v_request_id;
 end;
 $function$;
+revoke all on function public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text) from public, anon;
 grant execute on function public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text) to authenticated;
 
 -- Credit consumption must never cross the center boundary.

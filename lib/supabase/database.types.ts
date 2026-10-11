@@ -137,8 +137,61 @@ export type Database = {
           },
         ]
       }
+      organizations: {
+        Row: { id: string; name: string; slug: string; is_active: boolean; created_at: string; created_by: string | null }
+        Insert: { id?: string; name: string; slug: string; is_active?: boolean; created_at?: string; created_by?: string | null }
+        Update: { id?: string; name?: string; slug?: string; is_active?: boolean; created_at?: string; created_by?: string | null }
+        Relationships: [{ foreignKeyName: "organizations_created_by_fkey"; columns: ["created_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] }]
+      }
+      centers: {
+        Row: { id: string; organization_id: string; name: string; address: string | null; is_active: boolean; created_at: string }
+        Insert: { id?: string; organization_id: string; name: string; address?: string | null; is_active?: boolean; created_at?: string }
+        Update: { id?: string; organization_id?: string; name?: string; address?: string | null; is_active?: boolean; created_at?: string }
+        Relationships: [{ foreignKeyName: "centers_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] }]
+      }
+      rooms: {
+        Row: { id: string; center_id: string; name: string; capacity: number; is_active: boolean; created_at: string }
+        Insert: { id?: string; center_id: string; name: string; capacity?: number; is_active?: boolean; created_at?: string }
+        Update: { id?: string; center_id?: string; name?: string; capacity?: number; is_active?: boolean; created_at?: string }
+        Relationships: [{ foreignKeyName: "rooms_center_id_fkey"; columns: ["center_id"]; isOneToOne: false; referencedRelation: "centers"; referencedColumns: ["id"] }]
+      }
+      session_requests: {
+        Row: {
+          id: string; organization_id: string; center_id: string; room_id: string | null; instructor_id: string; requested_by: string;
+          session_type: Database["public"]["Enums"]["lesson_type"]; title: string; private_member_id: string | null;
+          starts_at: string; ends_at: string; expected_attendees: number; notes: string | null;
+          status: string; reviewed_by: string | null; reviewed_at: string | null; review_note: string | null;
+          approved_lesson_id: string | null; created_at: string;
+        }
+        Insert: {
+          id?: string; organization_id: string; center_id: string; room_id?: string | null; instructor_id: string; requested_by: string;
+          session_type: Database["public"]["Enums"]["lesson_type"]; title: string; private_member_id?: string | null;
+          starts_at: string; ends_at: string; expected_attendees?: number; notes?: string | null;
+          status?: string; reviewed_by?: string | null; reviewed_at?: string | null; review_note?: string | null;
+          approved_lesson_id?: string | null; created_at?: string;
+        }
+        Update: {
+          id?: string; organization_id?: string; center_id?: string; room_id?: string | null; instructor_id?: string; requested_by?: string;
+          session_type?: Database["public"]["Enums"]["lesson_type"]; title?: string; private_member_id?: string | null;
+          starts_at?: string; ends_at?: string; expected_attendees?: number; notes?: string | null;
+          status?: string; reviewed_by?: string | null; reviewed_at?: string | null; review_note?: string | null;
+          approved_lesson_id?: string | null; created_at?: string;
+        }
+        Relationships: [
+          { foreignKeyName: "session_requests_organization_id_fkey"; columns: ["organization_id"]; isOneToOne: false; referencedRelation: "organizations"; referencedColumns: ["id"] },
+          { foreignKeyName: "session_requests_center_id_fkey"; columns: ["center_id"]; isOneToOne: false; referencedRelation: "centers"; referencedColumns: ["id"] },
+          { foreignKeyName: "session_requests_room_id_fkey"; columns: ["room_id"]; isOneToOne: false; referencedRelation: "rooms"; referencedColumns: ["id"] },
+          { foreignKeyName: "session_requests_instructor_id_fkey"; columns: ["instructor_id"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "session_requests_requested_by_fkey"; columns: ["requested_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "session_requests_private_member_id_fkey"; columns: ["private_member_id"]; isOneToOne: false; referencedRelation: "members"; referencedColumns: ["id"] },
+          { foreignKeyName: "session_requests_reviewed_by_fkey"; columns: ["reviewed_by"]; isOneToOne: false; referencedRelation: "profiles"; referencedColumns: ["id"] },
+          { foreignKeyName: "session_requests_approved_lesson_id_fkey"; columns: ["approved_lesson_id"]; isOneToOne: false; referencedRelation: "lessons"; referencedColumns: ["id"] }
+        ]
+      }
       lessons: {
         Row: {
+          center_id: string | null
+          room_id: string | null
           created_at: string
           created_by: string | null
           ends_at: string | null
@@ -153,6 +206,10 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          center_id?: string | null
+          room_id?: string | null
+          center_id?: string | null
+          room_id?: string | null
           created_at?: string
           created_by?: string | null
           ends_at?: string | null

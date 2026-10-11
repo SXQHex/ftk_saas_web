@@ -81,8 +81,8 @@ export async function createRoom(input: unknown): Promise<ActionResult> {
 
 export async function listRequestableMembers(centerId: string): Promise<{ ok: true; rows: { id: string; full_name: string }[] } | { ok: false; error: string }> {
   const { supabase } = await requireRole(["instructor"]);
-  const parsed = parseInput(uuid, centerId);
-  if (parsed.failure) return { ok: false, error: parsed.failure.error };
+  const parsed = uuid.safeParse(centerId);
+  if (!parsed.success) return { ok: false, error: "Merkez kimliği geçersiz." };
   const { data, error } = await supabase.rpc("list_requestable_members", { p_center_id: parsed.data });
   if (error) return { ok: false, error: dbErrorMessage(error, "Bu merkez için üye listesi alınamadı.") };
   return { ok: true, rows: data ?? [] };

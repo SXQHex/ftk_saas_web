@@ -89,7 +89,8 @@ using (
   )
 );
 
--- Validate the same session-scoped member authorization in the database, not just in the picker.
+-- Validate session-scoped member access for instructors while preserving manager-created group proposals.
+drop function if exists public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text);
 create or replace function public.create_session_request(
   p_center_id uuid,
   p_room_id uuid,
@@ -99,7 +100,8 @@ create or replace function public.create_session_request(
   p_starts_at timestamptz,
   p_ends_at timestamptz,
   p_expected_attendees integer,
-  p_notes text
+  p_notes text,
+  p_instructor_id uuid default null
 )
 returns uuid
 language plpgsql
@@ -109,10 +111,36 @@ as $function$
 declare
   v_organization_id uuid;
   v_request_id uuid;
+  v_instructor_id uuid;
+  v_role public.app_role;
 begin
-  if (select app_private.current_role()) is distinct from 'instructor'::public.app_role then
-    raise exception 'Seans talebini yalnızca eğitmen oluşturabilir.' using errcode = '42501';
+  v_role := (select app_private.current_role());
+  if v_role is distinct from 'instructor'::public.app_role
+    and v_role is distinct from 'admin'::public.app_role then
+    raise exception 'Bu işlem için yönetici veya eğitmen yetkisi gerekir.' using errcode = '42501';
   end if;
+
+  if v_role = 'instructor'::public.app_role then
+    if p_session_type <> 'private'::public.lesson_type then
+      raise exception 'Eğitmenler özel ders talebi oluşturabilir; grup dersini yönetici planlar.';
+    end if;
+    v_instructor_id := (select auth.uid());
+  else
+    if p_session_type <> 'group'::public.lesson_type then
+      raise exception 'Yönetici bu akışta grup dersi taslağı oluşturabilir; özel ders talebini eğitmen oluşturur.';
+    end if;
+    if not (select app_private.is_center_admin(p_center_id)) then
+      raise exception 'Bu merkezde yönetici yetkiniz yok.' using errcode = '42501';
+    end if;
+    if p_instructor_id is null or not exists (
+      select 1 from public.profiles p
+      where p.id = p_instructor_id and p.role = 'instructor'::public.app_role
+    ) then
+      raise exception 'Grup dersi için bir eğitmen atayın.';
+    end if;
+    v_instructor_id := p_instructor_id;
+  end if;
+
   if p_title is null or length(trim(p_title)) not between 1 and 160 then
     raise exception 'Seans adı geçersiz.';
   end if;
@@ -164,7 +192,7 @@ begin
     organization_id, center_id, room_id, instructor_id, requested_by, session_type, title,
     private_member_id, starts_at, ends_at, expected_attendees, notes, status
   ) values (
-    v_organization_id, p_center_id, p_room_id, (select auth.uid()), (select auth.uid()), p_session_type,
+    v_organization_id, p_center_id, p_room_id, v_instructor_id, (select auth.uid()), p_session_type,
     trim(p_title), p_private_member_id, p_starts_at, p_ends_at, p_expected_attendees,
     nullif(trim(p_notes), ''), 'pending'
   ) returning id into v_request_id;
@@ -172,7 +200,7 @@ begin
   return v_request_id;
 end;
 $function$;
-revoke all on function public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text) from public, anon;
-grant execute on function public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text) to authenticated;
+revoke all on function public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text, uuid) from public, anon;
+grant execute on function public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text, uuid) to authenticated;
 
 commit;

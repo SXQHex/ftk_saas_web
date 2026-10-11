@@ -192,7 +192,7 @@ export type Database = {
         Row: {
           center_id: string | null
           room_id: string | null
-          expected_attendees: number
+          expected_attendees: number | null
           created_at: string
           created_by: string | null
           ends_at: string | null
@@ -209,7 +209,7 @@ export type Database = {
         Insert: {
           center_id?: string | null
           room_id?: string | null
-          expected_attendees?: number
+          expected_attendees?: number | null
           created_at?: string
           created_by?: string | null
           ends_at?: string | null

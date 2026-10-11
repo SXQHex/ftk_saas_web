@@ -57,7 +57,7 @@ export async function subscriptionStats(supabase: ServerSupabase) {
 export async function listActiveSubscriptions(supabase: ServerSupabase, limit = 1000) {
   const { data, error } = await supabase
     .from("subscriptions")
-    .select("id, member_id, type, status, starts_on, ends_on, credits_purchased, credits_remaining, members!inner(full_name)")
+    .select("id, member_id, type, status, starts_on, ends_on, credits_purchased, credits_remaining, members:members!subscriptions_member_id_fkey!inner(full_name)")
     .eq("status", "active")
     .order("starts_on", { ascending: false })
     .limit(limit);

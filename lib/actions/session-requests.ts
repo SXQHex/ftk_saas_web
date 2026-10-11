@@ -15,6 +15,10 @@ const centerAdminSchema = z.object({ center_id: uuid, profile_id: uuid });
 function refresh() {
   revalidatePath("/dashboard/session-requests");
   revalidatePath("/dashboard/lessons");
+  revalidatePath("/dashboard/members");
+  revalidatePath("/dashboard/attendance");
+  revalidatePath("/dashboard/subscriptions");
+  revalidatePath("/dashboard/credits");
 }
 
 export async function createOrganization(input: unknown): Promise<ActionResult> {

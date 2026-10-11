@@ -9,7 +9,7 @@ export default async function SessionRequestsPage() {
   const isAdmin = profile.role === "admin";
   const [resources, requestList] = await Promise.all([
     listSchedulingResources(supabase),
-    listSessionRequests(supabase, isAdmin),
+    listSessionRequests(supabase),
   ]);
   return (
     <SessionRequestsManager

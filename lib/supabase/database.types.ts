@@ -222,13 +222,8 @@ export type Database = {
           center_id: string
           room_id?: string | null
           expected_attendees?: number | null
-          center_id?: string | null
-          room_id?: string | null
-          expected_attendees?: number | null
           created_at?: string
-          center_id?: string
           created_by?: string | null
-          center_id?: string
           ends_at?: string | null
           id?: string
           instructor_id?: string | null
@@ -244,9 +239,6 @@ export type Database = {
           center_id?: string
           room_id?: string | null
           expected_attendees?: number | null
-          center_id?: string | null
-          room_id?: string | null
-          expected_attendees?: number
           created_at?: string
           created_by?: string | null
           ends_at?: string | null
@@ -314,7 +306,6 @@ export type Database = {
         Insert: {
           center_id: string
           created_at?: string
-          center_id?: string
           email?: string | null
           full_name: string
           id?: string

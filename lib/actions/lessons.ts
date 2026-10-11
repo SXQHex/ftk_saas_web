@@ -38,6 +38,11 @@ export async function saveLesson(id: string | null, input: unknown): Promise<Act
     return fail("Seçilen oda belirtilen merkeze ait değil veya kullanılamıyor.");
   }
   if (data.expected_attendees > room.capacity) return fail(`Katılımcı sayısı seçilen odanın kapasitesini (${room.capacity}) aşıyor.`);
+  if (data.type === "private" && data.private_member_id) {
+    const { data: member, error: memberError } = await supabase.from("members")
+      .select("id").eq("id", data.private_member_id).eq("center_id", data.center_id).eq("is_active", true).maybeSingle();
+    if (memberError || !member) return fail("Özel ders üyesi seçilen merkeze ait değil veya aktif değil.");
+  }
 
   const result = id
     ? await supabase.from("lessons").update(data).eq("id", id)

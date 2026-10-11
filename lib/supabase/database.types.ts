@@ -157,21 +157,21 @@ export type Database = {
       }
       session_requests: {
         Row: {
-          id: string; organization_id: string; center_id: string; room_id: string | null; instructor_id: string; requested_by: string;
+          id: string; organization_id: string; center_id: string; room_id: string; instructor_id: string; requested_by: string;
           session_type: Database["public"]["Enums"]["lesson_type"]; title: string; private_member_id: string | null;
           starts_at: string; ends_at: string; expected_attendees: number; notes: string | null;
           status: string; reviewed_by: string | null; reviewed_at: string | null; review_note: string | null;
           approved_lesson_id: string | null; created_at: string;
         }
         Insert: {
-          id?: string; organization_id: string; center_id: string; room_id?: string | null; instructor_id: string; requested_by: string;
+          id?: string; organization_id: string; center_id: string; room_id: string; instructor_id: string; requested_by: string;
           session_type: Database["public"]["Enums"]["lesson_type"]; title: string; private_member_id?: string | null;
           starts_at: string; ends_at: string; expected_attendees?: number; notes?: string | null;
           status?: string; reviewed_by?: string | null; reviewed_at?: string | null; review_note?: string | null;
           approved_lesson_id?: string | null; created_at?: string;
         }
         Update: {
-          id?: string; organization_id?: string; center_id?: string; room_id?: string | null; instructor_id?: string; requested_by?: string;
+          id?: string; organization_id?: string; center_id?: string; room_id?: string; instructor_id?: string; requested_by?: string;
           session_type?: Database["public"]["Enums"]["lesson_type"]; title?: string; private_member_id?: string | null;
           starts_at?: string; ends_at?: string; expected_attendees?: number; notes?: string | null;
           status?: string; reviewed_by?: string | null; reviewed_at?: string | null; review_note?: string | null;
@@ -208,8 +208,6 @@ export type Database = {
         Insert: {
           center_id?: string | null
           room_id?: string | null
-          center_id?: string | null
-          room_id?: string | null
           created_at?: string
           created_by?: string | null
           ends_at?: string | null
@@ -224,6 +222,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          center_id?: string | null
+          room_id?: string | null
           created_at?: string
           created_by?: string | null
           ends_at?: string | null

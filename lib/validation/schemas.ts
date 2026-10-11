@@ -45,7 +45,7 @@ export const lessonSchema = z
     title: z.string().trim().min(1, "Ders adı zorunludur.").max(160, "Ders adı en fazla 160 karakter olabilir."),
     starts_at: isoDateTime,
     ends_at: isoDateTime.nullable(),
-    instructor_id: uuid("Geçersiz eğitmen.").nullable(),
+    instructor_id: uuid("Eğitmen seçin."),
     private_member_id: uuid("Geçersiz üye.").nullable(),
     center_id: uuid("Merkez seçin."),
     room_id: uuid("Oda seçin."),
@@ -55,6 +55,9 @@ export const lessonSchema = z
   .superRefine((value, ctx) => {
     if (value.type === "private" && !value.private_member_id) {
       ctx.addIssue({ code: "custom", path: ["private_member_id"], message: "Özel ders için bir üye seçin." });
+    }
+    if (value.type === "private" && value.expected_attendees !== 1) {
+      ctx.addIssue({ code: "custom", path: ["expected_attendees"], message: "Özel ders için katılımcı sayısı 1 olmalıdır." });
     }
     if (value.ends_at && Date.parse(value.ends_at) <= Date.parse(value.starts_at)) {
       ctx.addIssue({ code: "custom", path: ["ends_at"], message: "Bitiş zamanı başlangıçtan sonra olmalıdır." });

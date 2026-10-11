@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useState } from "react";
+import Link from "next/link";
 import { CalendarDays, CirclePlus, Clock3, Edit2, UserRound, X } from "lucide-react";
 import { ListFilters } from "@/components/list-filters";
 import { PageNotice } from "@/components/page-notice";
@@ -139,7 +140,7 @@ export function LessonsManager({
     <>
       <div className="page-heading">
         <div><p className="eyebrow">PLANLAMA</p><h1>Ders takvimi</h1><p className="dashboard-subtitle">Özel ve grup derslerini planlayın, tamamlanma durumunu yönetin.</p></div>
-        {canManage && <button className="primary-action" type="button" onClick={openCreate}><CirclePlus size={17} /> Ders planla</button>}
+        <div className="row-actions"><Link className="secondary-action" href="/dashboard/session-requests">Seans talepleri ve odalar</Link>{canManage && <button className="primary-action" type="button" onClick={openCreate}><CirclePlus size={17} /> Ders planla</button>}</div>
       </div>
 
       <div className="stat-strip">

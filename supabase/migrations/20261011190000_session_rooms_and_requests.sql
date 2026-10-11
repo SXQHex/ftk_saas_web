@@ -169,6 +169,18 @@ create or replace function app_private.prevent_session_resource_overlap()
 returns trigger language plpgsql set search_path to ''
 as $function$
 begin
+  if tg_op = 'INSERT' and new.status = 'scheduled' then
+    if new.room_id is null then raise exception 'Yeni planlanan seans için oda seçilmelidir.'; end if;
+    if new.instructor_id is null then raise exception 'Yeni planlanan seans için eğitmen seçilmelidir.'; end if;
+  elsif tg_op = 'UPDATE' and new.status = 'scheduled'
+    and (new.room_id is distinct from old.room_id
+      or new.instructor_id is distinct from old.instructor_id
+      or new.starts_at is distinct from old.starts_at
+      or new.ends_at is distinct from old.ends_at
+      or old.status is distinct from new.status) then
+    if new.room_id is null then raise exception 'Planlanan seans için oda seçilmelidir.'; end if;
+    if new.instructor_id is null then raise exception 'Planlanan seans için eğitmen seçilmelidir.'; end if;
+  end if;
   if new.status = 'scheduled' and new.room_id is not null then
     if new.expected_attendees is null then
       raise exception 'Oda rezervasyonu için katılımcı sayısı zorunludur.';

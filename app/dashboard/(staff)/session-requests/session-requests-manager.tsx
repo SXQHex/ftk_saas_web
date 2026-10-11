@@ -1,16 +1,15 @@
 "use client";
 
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { Building2, CalendarClock, Check, DoorOpen, Plus, X } from "lucide-react";
 import { PageNotice } from "@/components/page-notice";
 import { useActionRunner } from "@/components/use-action-runner";
 import {
-  createCenter, createOrganization, createRoom, createSessionRequest, reviewSessionRequest,
+  createCenter, createOrganization, createRoom, createSessionRequest, listRequestableMembers, reviewSessionRequest,
 } from "@/lib/actions/session-requests";
 import type { CenterOption, OrganizationOption, RoomOption, SessionRequestRow } from "@/lib/data/session-requests";
 
-type MemberOption = { id: string; full_name: string };
 function toIso(value: string) {
   const date = new Date(value);
   return value && !Number.isNaN(date.getTime()) ? date.toISOString() : "";
@@ -21,13 +20,12 @@ function formatTime(value: string) {
 const statusText: Record<string, string> = { pending: "Onay bekliyor", approved: "Onaylandı", rejected: "Reddedildi", cancelled: "İptal" };
 
 export function SessionRequestsManager({
-  isAdmin, organizations, centers, rooms, members, requests, loadError,
+  isAdmin, organizations, centers, rooms, requests, loadError,
 }: {
   isAdmin: boolean;
   organizations: OrganizationOption[];
   centers: CenterOption[];
   rooms: RoomOption[];
-  members: MemberOption[];
   requests: SessionRequestRow[];
   loadError: boolean;
 }) {
@@ -43,12 +41,35 @@ export function SessionRequestsManager({
   const [roomId, setRoomId] = useState("");
   const [title, setTitle] = useState("Özel ders");
   const [memberId, setMemberId] = useState("");
+  const [requestMembers, setRequestMembers] = useState<{ id: string; full_name: string }[]>([]);
+  const [memberLoading, setMemberLoading] = useState(false);
+  const [memberLoadError, setMemberLoadError] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [attendees, setAttendees] = useState("1");
   const [notes, setNotes] = useState("");
   const [reviewNotes, setReviewNotes] = useState<Record<string, string>>({});
   const { busy, error, notice, setError, reset, run } = useActionRunner();
+
+  useEffect(() => {
+    let active = true;
+    setRequestMembers([]);
+    setMemberId("");
+    setMemberLoadError("");
+    if (isAdmin || sessionType !== "private" || !centerId) {
+      setMemberLoading(false);
+      return () => { active = false; };
+    }
+    setMemberLoading(true);
+    void listRequestableMembers(centerId).then((result) => {
+      if (!active) return;
+      if (result.ok) setRequestMembers(result.rows);
+      else setMemberLoadError(result.error);
+    }).finally(() => {
+      if (active) setMemberLoading(false);
+    });
+    return () => { active = false; };
+  }, [centerId, sessionType, isAdmin]);
 
   const centerRooms = rooms.filter((room) => room.center_id === centerId);
   const roomSetupRooms = rooms.filter((room) => room.center_id === roomCenter);
@@ -129,7 +150,7 @@ export function SessionRequestsManager({
                 <label>İstenen oda *<select required value={roomId} onChange={(e) => setRoomId(e.target.value)}><option value="">Oda seçin</option>{centerRooms.map((r) => <option key={r.id} value={r.id}>{r.name} · kapasite {r.capacity}</option>)}</select></label>
                 <label>Seans türü *<select value={sessionType} onChange={(e) => { const type = e.target.value as "private" | "group"; setSessionType(type); setTitle(type === "private" ? "Özel ders" : "Grup dersi"); setAttendees(type === "private" ? "1" : "20"); }}><option value="private">Özel ders</option><option value="group">Grup dersi</option></select></label>
                 <label>Seans adı *<input required maxLength={160} value={title} onChange={(e) => setTitle(e.target.value)} /></label>
-                {sessionType === "private" && <label>Üye *<select required value={memberId} onChange={(e) => setMemberId(e.target.value)}><option value="">Üye seçin</option>{members.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}</select></label>}
+                {sessionType === "private" && <label>Üye *<select required disabled={memberLoading || !centerId} value={memberId} onChange={(e) => setMemberId(e.target.value)}><option value="">{memberLoading ? "Üyeler yükleniyor…" : "Üye seçin"}</option>{requestMembers.map((m) => <option key={m.id} value={m.id}>{m.full_name}</option>)}</select>{memberLoadError && <small>{memberLoadError}</small>}</label>}
                 <label>Katılımcı sayısı *<input required type="number" min="1" max="500" value={attendees} onChange={(e) => setAttendees(e.target.value)} /></label>
                 <label>Başlangıç *<input required type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} /></label>
                 <label>Bitiş *<input required type="datetime-local" min={startsAt || undefined} value={endsAt} onChange={(e) => setEndsAt(e.target.value)} /></label>

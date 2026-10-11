@@ -23,7 +23,11 @@ describe("center-level isolation migration contract", () => {
     const rpc = migration.match(/create or replace function public\.create_session_request\([\s\S]*?\$function\$;/i)?.[0] ?? "";
     expect(rpc).toContain("instructor_can_access_member_center(p_center_id, p_private_member_id)");
     expect(rpc).toContain("security definer");
-    expect(rpc).toContain("revoke all on function public.create_session_request");
+    expect(rpc).toContain("p_instructor_id uuid default null");
+    expect(rpc).toContain("v_role := (select app_private.current_role())");
+    expect(rpc).toContain("v_instructor_id := (select auth.uid())");
+    expect(rpc).toContain("app_private.is_center_admin(p_center_id)");
+    expect(rpc).toContain("revoke all on function public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text, uuid)");
   });
 
   it("keeps each business table behind center-scoped RLS policies", () => {

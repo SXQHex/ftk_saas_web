@@ -12,7 +12,7 @@ const centerSchema = z.object({ organization_id: uuid, name: label, address: z.s
 const roomSchema = z.object({ center_id: uuid, name: z.string().trim().min(1).max(120), capacity: z.number().int().min(1).max(500) });
 const requestSchema = z.object({
   center_id: uuid,
-  room_id: uuid.nullable(),
+  room_id: uuid,
   session_type: z.enum(["private", "group"]),
   title: label,
   private_member_id: uuid.nullable(),
@@ -23,6 +23,7 @@ const requestSchema = z.object({
 }).superRefine((v, ctx) => {
   if (Date.parse(v.ends_at) <= Date.parse(v.starts_at)) ctx.addIssue({ code: "custom", path: ["ends_at"], message: "Bitiş saati başlangıçtan sonra olmalı." });
   if (v.session_type === "private" && !v.private_member_id) ctx.addIssue({ code: "custom", path: ["private_member_id"], message: "Özel ders için üye seçin." });
+  if (v.session_type === "private" && v.expected_attendees !== 1) ctx.addIssue({ code: "custom", path: ["expected_attendees"], message: "Özel ders için katılımcı sayısı 1 olmalıdır." });
   if (v.session_type === "group" && v.private_member_id) ctx.addIssue({ code: "custom", path: ["private_member_id"], message: "Grup dersinde özel üye seçilemez." });
 });
 

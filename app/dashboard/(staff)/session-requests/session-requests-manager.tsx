@@ -193,7 +193,7 @@ export function SessionRequestsManager({
 
       {!isAdmin && (
         <section className="form-card">
-          <div className="form-card-heading"><div><h2><CalendarClock size={18} /> Yeni seans talebi</h2><p>Talep diğer bekleyen talepleri engellemez; seçilen oda yalnızca onayda rezerve edilir.</p></div></div>
+          <div className="form-card-heading"><div><h2><CalendarClock size={18} /> Özel ders talebi</h2><p>Talep diğer bekleyen talepleri engellemez; seçilen oda yalnızca yönetici onayında rezerve edilir.</p></div></div>
           {(!centers.length || !rooms.length) ? <p>Henüz kullanılabilir merkez veya oda tanımlanmamış. Yöneticiden mekânları tanımlamasını isteyin.</p> : (
             <form className="record-form" onSubmit={submitRequest}>
               <div className="field-grid">

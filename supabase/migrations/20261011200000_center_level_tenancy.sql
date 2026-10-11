@@ -375,6 +375,21 @@ begin
 end;
 $function$;
 
+create or replace function app_private.instructor_can_access_member_center(p_center_id uuid, p_member_id uuid)
+returns boolean language sql stable security definer set search_path to ''
+as $function$
+  select exists (
+    select 1 from public.lessons l
+    where l.center_id = p_center_id and l.instructor_id = (select auth.uid())
+      and (
+        l.private_member_id = p_member_id
+        or exists (select 1 from public.attendance a where a.lesson_id = l.id and a.member_id = p_member_id)
+      )
+  )
+$function$;
+revoke all on function app_private.instructor_can_access_member_center(uuid, uuid) from public, anon;
+grant execute on function app_private.instructor_can_access_member_center(uuid, uuid) to authenticated;
+
 -- Replace existing broad policies with center-scoped policies.
 drop policy if exists profiles_admin_manage on public.profiles;
 drop policy if exists center_admins_self_read on public.center_admins;
@@ -440,11 +455,7 @@ using (
   or (select app_private.is_center_admin(center_id))
   or (
     (select app_private.current_role()) = 'instructor'::public.app_role
-    and exists (
-      select 1 from public.lessons l
-      where l.center_id = subscriptions.center_id and l.instructor_id = (select auth.uid())
-        and (l.private_member_id = subscriptions.member_id or exists (select 1 from public.attendance a where a.lesson_id = l.id and a.member_id = subscriptions.member_id))
-    )
+    and (select app_private.instructor_can_access_member_center(subscriptions.center_id, subscriptions.member_id))
   )
 );
 

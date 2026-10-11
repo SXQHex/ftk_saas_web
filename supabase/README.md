@@ -2,8 +2,8 @@
 
 | Path | What it is |
 | --- | --- |
-| `schema/00_baseline_snapshot.sql` | Full schema of the live StudioSaaS project (tables, enums, functions, triggers, RLS), reconstructed by introspection on 2026-10-11. **Use this to bootstrap a fresh database.** It already contains everything in `migrations/`. |
-| `migrations/` | Migrations applied to production after the baseline was written. Already reflected in the snapshot; keep new migrations here. |
+| `schema/00_baseline_snapshot.sql` | Reconstructed baseline plus the two production hardening migrations listed in its header. **It does not include the newer room-booking and center-isolation migrations below.** |
+| `migrations/20261010030941_…sql` and `20261010032120_…sql` | Production hardening migrations; their effects are reflected in the baseline snapshot. |
 | `migrations/20261011190000_session_rooms_and_requests.sql` | Adds organizations, centers, rooms and manager-approved session requests. Not yet applied to production. |
 | `migrations/20261011200000_center_level_tenancy.sql` | Makes **center** the data-isolation boundary, scopes RLS, and fixes cross-center credit consumption. Not yet applied to production. |
 

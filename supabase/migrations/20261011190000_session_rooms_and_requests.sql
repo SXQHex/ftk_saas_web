@@ -70,6 +70,17 @@ create index if not exists lessons_room_time_idx
 create index if not exists lessons_instructor_time_idx
   on public.lessons(instructor_id, starts_at, ends_at) where status = 'scheduled';
 
+-- Exclusion constraints are concurrency-safe: simultaneous approvals cannot reserve the same room
+-- or instructor in overlapping time ranges.
+alter table public.lessons
+  add constraint lessons_room_no_overlap
+  exclude using gist (room_id with =, tstzrange(starts_at, ends_at, '[)') with &&)
+  where (status = 'scheduled' and room_id is not null and ends_at is not null);
+alter table public.lessons
+  add constraint lessons_instructor_no_overlap
+  exclude using gist (instructor_id with =, tstzrange(starts_at, ends_at, '[)') with &&)
+  where (status = 'scheduled' and instructor_id is not null and ends_at is not null);
+
 alter table public.organizations enable row level security;
 alter table public.centers enable row level security;
 alter table public.rooms enable row level security;

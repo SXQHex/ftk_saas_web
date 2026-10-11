@@ -11,14 +11,6 @@ import {
 import type { CenterOption, OrganizationOption, RoomOption, SessionRequestRow } from "@/lib/data/session-requests";
 
 type MemberOption = { id: string; full_name: string };
-type InstructorOption = { id: string; full_name: string };
-
-function isoLocal(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 function toIso(value: string) {
   const date = new Date(value);
   return value && !Number.isNaN(date.getTime()) ? date.toISOString() : "";

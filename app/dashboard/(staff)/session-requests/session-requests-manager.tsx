@@ -6,9 +6,9 @@ import { Building2, CalendarClock, Check, DoorOpen, Plus, X } from "lucide-react
 import { PageNotice } from "@/components/page-notice";
 import { useActionRunner } from "@/components/use-action-runner";
 import {
-  createCenter, createOrganization, createRoom, createSessionRequest, listRequestableMembers, reviewSessionRequest,
+  createCenter, createOrganization, createRoom, createSessionRequest, grantCenterAdmin, listRequestableMembers, reviewSessionRequest,
 } from "@/lib/actions/session-requests";
-import type { CenterOption, OrganizationOption, RoomOption, SessionRequestRow } from "@/lib/data/session-requests";
+import type { CenterAdminOption, CenterOption, OrganizationOption, RoomOption, SessionRequestRow } from "@/lib/data/session-requests";
 
 function toIso(value: string) {
   const date = new Date(value);
@@ -20,12 +20,13 @@ function formatTime(value: string) {
 const statusText: Record<string, string> = { pending: "Onay bekliyor", approved: "Onaylandı", rejected: "Reddedildi", cancelled: "İptal" };
 
 export function SessionRequestsManager({
-  isAdmin, organizations, centers, rooms, requests, loadError,
+  isAdmin, organizations, centers, rooms, admins, requests, loadError,
 }: {
   isAdmin: boolean;
   organizations: OrganizationOption[];
   centers: CenterOption[];
   rooms: RoomOption[];
+  admins: CenterAdminOption[];
   requests: SessionRequestRow[];
   loadError: boolean;
 }) {
@@ -36,6 +37,8 @@ export function SessionRequestsManager({
   const [roomCenter, setRoomCenter] = useState(centers[0]?.id ?? "");
   const [roomName, setRoomName] = useState("");
   const [capacity, setCapacity] = useState("20");
+  const [adminCenter, setAdminCenter] = useState(centers[0]?.id ?? "");
+  const [adminProfile, setAdminProfile] = useState("");
   const [sessionType, setSessionType] = useState<"private" | "group">("private");
   const [centerId, setCenterId] = useState(centers[0]?.id ?? "");
   const [roomId, setRoomId] = useState("");
@@ -88,6 +91,13 @@ export function SessionRequestsManager({
     event.preventDefault();
     await run(() => createRoom({ center_id: roomCenter, name: roomName, capacity: Number(capacity) }), { onSuccess: () => setRoomName("") });
   }
+
+  async function submitCenterAdmin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await run(() => grantCenterAdmin({ center_id: adminCenter, profile_id: adminProfile }), {
+      onSuccess: () => setAdminProfile(""),
+    });
+  }
   async function submitRequest(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     reset();
@@ -134,6 +144,11 @@ export function SessionRequestsManager({
               <label>Oda adı<input required maxLength={120} value={roomName} onChange={(e) => setRoomName(e.target.value)} placeholder="Örn. Salon A" /></label>
               <label>Kapasite<input required type="number" min="1" max="500" value={capacity} onChange={(e) => setCapacity(e.target.value)} /></label>
               <button className="secondary-action" disabled={busy || !roomCenter || !roomName.trim()}><Plus size={16} /> Oda ekle</button>
+            </form>
+            <form className="record-form" onSubmit={submitCenterAdmin}>
+              <label>Merkez<select required value={adminCenter} onChange={(e) => setAdminCenter(e.target.value)}><option value="">Merkez seçin</option>{centers.map((center) => <option key={center.id} value={center.id}>{center.name}</option>)}</select></label>
+              <label>Yönetici<select required value={adminProfile} onChange={(e) => setAdminProfile(e.target.value)}><option value="">Yönetici seçin</option>{admins.map((admin) => <option key={admin.id} value={admin.id}>{admin.full_name || "İsimsiz yönetici"}</option>)}</select></label>
+              <button className="secondary-action" disabled={busy || !adminCenter || !adminProfile}><Plus size={16} /> Merkez yöneticisi ata</button>
             </form>
           </div>
           <p className="dashboard-subtitle">Tanımlı: {organizations.length} organizasyon · {centers.length} merkez · {rooms.length} oda</p>

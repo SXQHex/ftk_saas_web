@@ -43,7 +43,7 @@ create table if not exists public.session_requests (
   id uuid primary key default gen_random_uuid(),
   organization_id uuid not null references public.organizations(id) on delete restrict,
   center_id uuid not null references public.centers(id) on delete restrict,
-  room_id uuid references public.rooms(id) on delete restrict,
+  room_id uuid not null references public.rooms(id) on delete restrict,
   instructor_id uuid not null references public.profiles(id) on delete restrict,
   requested_by uuid not null references public.profiles(id) on delete restrict,
   session_type public.lesson_type not null,
@@ -199,8 +199,11 @@ begin
   end if;
 
   if not exists (select 1 from public.centers c where c.id = v_request.center_id and c.organization_id = v_request.organization_id and c.is_active)
-    or (v_request.room_id is not null and not exists (select 1 from public.rooms r where r.id = v_request.room_id and r.center_id = v_request.center_id and r.is_active)) then
+    or not exists (select 1 from public.rooms r where r.id = v_request.room_id and r.center_id = v_request.center_id and r.is_active) then
     raise exception 'Merkez veya oda artık kullanılamıyor.';
+  end if;
+  if v_request.expected_attendees > (select r.capacity from public.rooms r where r.id = v_request.room_id) then
+    raise exception 'Katılımcı sayısı seçilen odanın kapasitesini aşıyor.';
   end if;
 
   insert into public.lessons(type, title, starts_at, ends_at, status, instructor_id, private_member_id, notes, created_by, center_id, room_id)

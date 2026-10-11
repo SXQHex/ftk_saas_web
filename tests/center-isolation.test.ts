@@ -27,7 +27,7 @@ describe("center-level isolation migration contract", () => {
     expect(rpc).toContain("v_role := (select app_private.current_role())");
     expect(rpc).toContain("v_instructor_id := (select auth.uid())");
     expect(rpc).toContain("app_private.is_center_admin(p_center_id)");
-    expect(rpc).toContain("revoke all on function public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text, uuid)");
+    expect(migration).toContain("revoke all on function public.create_session_request(uuid, uuid, public.lesson_type, text, uuid, timestamptz, timestamptz, integer, text, uuid)");
   });
 
   it("keeps each business table behind center-scoped RLS policies", () => {

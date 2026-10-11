@@ -633,9 +633,18 @@ begin
       reviewed_at = now(), review_note = p_review_note where id = p_request_id;
     return null;
   end if;
-  if not exists (select 1 from public.centers c where c.id = v_request.center_id and c.organization_id = v_request.organization_id and c.is_active)
-    or not exists (select 1 from public.rooms r where r.id = v_request.room_id and r.center_id = v_request.center_id and r.is_active) then
+  if not exists (
+      select 1 from public.centers c join public.organizations o on o.id = c.organization_id
+      where c.id = v_request.center_id and c.organization_id = v_request.organization_id and c.is_active and o.is_active
+    ) or not exists (
+      select 1 from public.rooms r where r.id = v_request.room_id and r.center_id = v_request.center_id and r.is_active
+    ) then
     raise exception 'Merkez veya oda artık kullanılamıyor.';
+  end if;
+  if v_request.session_type = 'private'::public.lesson_type and not exists (
+    select 1 from public.members m where m.id = v_request.private_member_id and m.center_id = v_request.center_id and m.is_active
+  ) then
+    raise exception 'Özel ders üyesi artık bu merkezde aktif değil.';
   end if;
   if v_request.expected_attendees > (select r.capacity from public.rooms r where r.id = v_request.room_id) then
     raise exception 'Katılımcı sayısı seçilen odanın kapasitesini aşıyor.';

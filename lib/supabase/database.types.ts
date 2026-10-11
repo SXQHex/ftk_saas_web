@@ -41,6 +41,7 @@ export type Database = {
           notes?: string | null
         }
         Update: {
+          center_id?: string
           attended?: boolean
           checked_in_at?: string
           checked_in_by?: string | null
@@ -100,6 +101,7 @@ export type Database = {
           subscription_id: string
         }
         Update: {
+          center_id?: string
           amount?: number
           created_at?: string
           created_by?: string | null
@@ -222,6 +224,7 @@ export type Database = {
           room_id?: string | null
           expected_attendees?: number | null
           created_at?: string
+          center_id?: string
           created_by?: string | null
           center_id?: string
           ends_at?: string | null
@@ -305,6 +308,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          center_id: string
           center_id?: string
           email?: string | null
           full_name: string
@@ -396,6 +400,7 @@ export type Database = {
           type: Database["public"]["Enums"]["subscription_type"]
         }
         Update: {
+          center_id?: string
           amount?: number
           created_at?: string
           created_by?: string | null

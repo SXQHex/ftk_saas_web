@@ -6,7 +6,7 @@ import { Building2, CalendarClock, Check, DoorOpen, Plus, X } from "lucide-react
 import { PageNotice } from "@/components/page-notice";
 import { useActionRunner } from "@/components/use-action-runner";
 import {
-  createCenter, createOrganization, createRoom, createSessionRequest, grantCenterAdmin, listRequestableMembers, reviewSessionRequest,
+  createCenter, createOrganization, createRoom, createSessionRequest, grantCenterAdmin, listRequestableMembers, revokeCenterAdmin, reviewSessionRequest,
 } from "@/lib/actions/session-requests";
 import type { CenterAdminOption, CenterOption, OrganizationOption, RoomOption, SessionRequestRow } from "@/lib/data/session-requests";
 
@@ -148,6 +148,7 @@ export function SessionRequestsManager({
               <label>Merkez<select required value={adminCenter} onChange={(e) => setAdminCenter(e.target.value)}><option value="">Merkez seçin</option>{centers.map((center) => <option key={center.id} value={center.id}>{center.name}</option>)}</select></label>
               <label>Yönetici<select required value={adminProfile} onChange={(e) => setAdminProfile(e.target.value)}><option value="">Yönetici seçin</option>{admins.map((admin) => <option key={admin.id} value={admin.id}>{admin.full_name || "İsimsiz yönetici"}</option>)}</select></label>
               <button className="secondary-action" disabled={busy || !adminCenter || !adminProfile}><Plus size={16} /> Merkez yöneticisi ata</button>
+              <button className="secondary-action" type="button" disabled={busy || !adminCenter || !adminProfile} onClick={() => void run(() => revokeCenterAdmin({ center_id: adminCenter, profile_id: adminProfile }), { onSuccess: () => setAdminProfile("") })}>Yönetici erişimini kaldır</button>
             </form>
           </div>
           <p className="dashboard-subtitle">Tanımlı: {organizations.length} organizasyon · {centers.length} merkez · {rooms.length} oda</p>

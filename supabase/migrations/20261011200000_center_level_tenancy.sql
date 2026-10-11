@@ -100,6 +100,26 @@ drop trigger if exists rooms_center_immutable on public.rooms;
 create trigger rooms_center_immutable before update of center_id on public.rooms
 for each row execute function app_private.prevent_center_reassignment();
 
+create or replace function app_private.prevent_session_request_direct_review()
+returns trigger language plpgsql set search_path to ''
+as $function$
+begin
+  if new.status is distinct from old.status
+    or new.reviewed_by is distinct from old.reviewed_by
+    or new.reviewed_at is distinct from old.reviewed_at
+    or new.review_note is distinct from old.review_note
+    or new.approved_lesson_id is distinct from old.approved_lesson_id then
+    if current_setting('app.session_request_review', true) is distinct from 'on' then
+      raise exception 'Talepler yalnızca yönetici onay fonksiyonu üzerinden değerlendirilebilir.';
+    end if;
+  end if;
+  return new;
+end;
+$function$;
+drop trigger if exists session_requests_review_guard on public.session_requests;
+create trigger session_requests_review_guard before update on public.session_requests
+for each row execute function app_private.prevent_session_request_direct_review();
+
 create or replace function app_private.prevent_session_request_detail_changes()
 returns trigger language plpgsql set search_path to ''
 as $function$
@@ -607,6 +627,7 @@ begin
     raise exception 'Bu merkezde yönetici yetkiniz yok.' using errcode = '42501';
   end if;
   if v_request.status <> 'pending' then raise exception 'Bu talep daha önce değerlendirilmiş.'; end if;
+  perform set_config('app.session_request_review', 'on', true);
   if not p_approve then
     update public.session_requests set status = 'rejected', reviewed_by = (select auth.uid()),
       reviewed_at = now(), review_note = p_review_note where id = p_request_id;

@@ -21,7 +21,7 @@ export type SubscriptionRow = Pick<
 > & { members: { full_name: string } };
 
 const SUBSCRIPTION_COLUMNS =
-  "id, member_id, type, starts_on, ends_on, credits_purchased, credits_remaining, amount, payment_status, paid_at, status, notes, members!inner(full_name)";
+  "id, member_id, type, starts_on, ends_on, credits_purchased, credits_remaining, amount, payment_status, paid_at, status, notes, members:members!subscriptions_member_id_fkey!inner(full_name)";
 
 export async function listSubscriptions(
   supabase: ServerSupabase,

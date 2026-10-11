@@ -30,6 +30,16 @@ $function$;
 revoke all on function app_private.instructor_can_access_member_center(uuid, uuid) from public, anon;
 grant execute on function app_private.instructor_can_access_member_center(uuid, uuid) to authenticated;
 
+-- Profile names are global identity metadata; instructors may read only their own profile.
+-- Admins can list profiles to assign instructors to a specific session and delegate center access.
+drop policy if exists profiles_read_self_or_staff on public.profiles;
+create policy profiles_read_self_or_admin on public.profiles
+for select to authenticated
+using (
+  id = (select auth.uid())
+  or (select app_private.current_role()) = 'admin'::public.app_role
+);
+
 -- Only return members already connected to a scheduled/completed session assigned to this instructor.
 -- The center ID supplied by the client is a filter, never proof of authorization.
 create or replace function public.list_requestable_members(p_center_id uuid)

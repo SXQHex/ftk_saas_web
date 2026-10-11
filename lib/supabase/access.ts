@@ -1,39 +1,30 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { type AppRole, getSession } from "@/lib/supabase/session";
 
-export type AppRole = "admin" | "instructor" | "student";
+export type { AppRole } from "@/lib/supabase/session";
 
+/**
+ * Server-side gate for pages and Server Actions. Redirects anonymous users to
+ * the login page and users without a permitted role to the dashboard home.
+ */
 export async function requireRole(allowedRoles: AppRole[]) {
-  const supabase = await createClient();
-  const { data: authData, error: authError } = await supabase.auth.getClaims();
-  const userId = authData?.claims?.sub;
+  const session = await getSession();
 
-  if (authError || typeof userId !== "string") {
+  if (session.status === "anonymous") {
     redirect("/login");
   }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("id, full_name, role")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (profileError || !profile) {
+  if (session.status === "no-profile") {
     redirect("/login?error=profile");
   }
-
-  if (!allowedRoles.includes(profile.role as AppRole)) {
+  if (!allowedRoles.includes(session.profile.role)) {
     redirect("/dashboard");
   }
 
   return {
-    supabase,
-    userId,
-    email: typeof authData?.claims?.email === "string" ? authData.claims.email : "",
-    profile: {
-      id: profile.id,
-      fullName: profile.full_name ?? "",
-      role: profile.role as AppRole,
-    },
+    supabase: await createClient(),
+    userId: session.userId,
+    email: session.email,
+    profile: session.profile,
   };
 }

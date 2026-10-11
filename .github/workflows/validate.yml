@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, claude/architecture-improvements, feat/session-room-booking-approval]
 
 permissions:
   contents: read
@@ -24,11 +24,15 @@ jobs:
         with:
           node-version-file: .nvmrc
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Audit dependencies
         run: npm audit --audit-level=high
       - name: Lint
         run: npm run lint
+      - name: Type check
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
       - name: Build
         run: npm run build
       - name: Smoke test production server

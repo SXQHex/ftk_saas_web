@@ -439,7 +439,7 @@ export type Database = {
       grant_center_admin: { Args: { p_center_id: string; p_profile_id: string }; Returns: undefined }
       revoke_center_admin: { Args: { p_center_id: string; p_profile_id: string }; Returns: undefined }
       list_requestable_members: { Args: { p_center_id: string }; Returns: { id: string; full_name: string }[] }
-      create_session_request: { Args: { p_center_id: string; p_room_id: string; p_session_type: Database["public"]["Enums"]["lesson_type"]; p_title: string; p_private_member_id: string | null; p_starts_at: string; p_ends_at: string; p_expected_attendees: number; p_notes: string | null }; Returns: string }
+      create_session_request: { Args: { p_center_id: string; p_room_id: string; p_session_type: Database["public"]["Enums"]["lesson_type"]; p_title: string; p_private_member_id: string | null; p_starts_at: string; p_ends_at: string; p_expected_attendees: number; p_notes: string | null; p_instructor_id?: string | null }; Returns: string }
       review_session_request: { Args: { p_request_id: string; p_approve: boolean; p_review_note?: string | null }; Returns: string | null }
     }
     Enums: {

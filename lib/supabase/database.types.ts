@@ -202,12 +202,11 @@ export type Database = {
       }
       lessons: {
         Row: {
-          center_id: string | null
+          center_id: string
           room_id: string | null
           expected_attendees: number | null
           created_at: string
           created_by: string | null
-          center_id: string
           ends_at: string | null
           id: string
           instructor_id: string | null
@@ -220,6 +219,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          center_id: string
+          room_id?: string | null
+          expected_attendees?: number | null
           center_id?: string | null
           room_id?: string | null
           expected_attendees?: number | null
@@ -239,6 +241,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          center_id?: string
+          room_id?: string | null
+          expected_attendees?: number | null
           center_id?: string | null
           room_id?: string | null
           expected_attendees?: number
@@ -295,8 +300,8 @@ export type Database = {
       }
       members: {
         Row: {
-          created_at: string
           center_id: string
+          created_at: string
           email: string | null
           full_name: string
           id: string
@@ -307,8 +312,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          created_at?: string
           center_id: string
+          created_at?: string
           center_id?: string
           email?: string | null
           full_name: string
@@ -320,6 +325,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          center_id?: string
           created_at?: string
           email?: string | null
           full_name?: string

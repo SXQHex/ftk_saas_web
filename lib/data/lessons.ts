@@ -6,7 +6,7 @@ export const LESSON_STATUSES = ["scheduled", "completed", "cancelled", "postpone
 
 export type LessonRow = Pick<
   Tables<"lessons">,
-  "id" | "type" | "title" | "starts_at" | "ends_at" | "status" | "instructor_id" | "private_member_id" | "notes" | "center_id" | "room_id"
+  "id" | "type" | "title" | "starts_at" | "ends_at" | "status" | "instructor_id" | "private_member_id" | "notes" | "center_id" | "room_id" | "expected_attendees"
 >;
 export type LessonOption = Pick<Tables<"lessons">, "id" | "type" | "title" | "starts_at" | "status" | "private_member_id">;
 export type InstructorOption = Pick<Tables<"profiles">, "id" | "full_name" | "role">;
@@ -18,7 +18,7 @@ export async function listLessons(
   const [from, to] = pageRange(page);
   let query = supabase
     .from("lessons")
-    .select("id, type, title, starts_at, ends_at, status, instructor_id, private_member_id, notes, center_id, room_id", { count: "exact" })
+    .select("id, type, title, starts_at, ends_at, status, instructor_id, private_member_id, notes, center_id, room_id, expected_attendees", { count: "exact" })
     .order("starts_at", { ascending: false })
     .range(from, to);
   if (q) query = query.or(`title.ilike.%${q}%,notes.ilike.%${q}%`);

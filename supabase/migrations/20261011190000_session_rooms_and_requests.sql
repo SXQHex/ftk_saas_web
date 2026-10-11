@@ -38,7 +38,7 @@ create table if not exists public.rooms (
 alter table public.lessons
   add column if not exists center_id uuid references public.centers(id) on delete restrict,
   add column if not exists room_id uuid references public.rooms(id) on delete restrict,
-  add column if not exists expected_attendees integer not null default 1 check (expected_attendees between 1 and 500);
+  add column if not exists expected_attendees integer default null check (expected_attendees is null or expected_attendees between 1 and 500);
 
 alter table public.lessons drop constraint if exists lessons_room_center_fkey;
 alter table public.lessons add constraint lessons_room_center_fkey
@@ -47,7 +47,7 @@ alter table public.lessons drop constraint if exists lessons_room_requires_cente
 alter table public.lessons add constraint lessons_room_requires_center check (room_id is null or center_id is not null);
 
 alter table public.lessons drop constraint if exists lessons_private_expected_attendees;
-alter table public.lessons add constraint lessons_private_expected_attendees check (type <> 'private'::public.lesson_type or expected_attendees = 1);
+alter table public.lessons add constraint lessons_private_expected_attendees check (expected_attendees is null or type <> 'private'::public.lesson_type or expected_attendees = 1);
 
 create table if not exists public.session_requests (
   id uuid primary key default gen_random_uuid(),
@@ -168,6 +168,9 @@ returns trigger language plpgsql set search_path to ''
 as $function$
 begin
   if new.status = 'scheduled' and new.room_id is not null then
+    if new.expected_attendees is null then
+      raise exception 'Oda rezervasyonu için katılımcı sayısı zorunludur.';
+    end if;
     if new.expected_attendees > (select r.capacity from public.rooms r where r.id = new.room_id) then
       raise exception 'Katılımcı sayısı seçilen odanın kapasitesini aşıyor.';
     end if;

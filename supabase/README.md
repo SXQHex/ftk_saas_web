@@ -6,6 +6,7 @@
 | `migrations/20261010030941_…sql` and `20261010032120_…sql` | Production hardening migrations; their effects are reflected in the baseline snapshot. |
 | `migrations/20261011190000_session_rooms_and_requests.sql` | Adds organizations, centers, rooms and manager-approved session requests. Not yet applied to production. |
 | `migrations/20261011200000_center_level_tenancy.sql` | Makes **center** the data-isolation boundary, scopes RLS, and fixes cross-center credit consumption. Not yet applied to production. |
+| `migrations/20261011210000_complete_center_isolation.sql` | Tightens instructor member access to scheduled/completed assigned sessions; a pending request no longer grants member-data access. Not yet applied to production. |
 
 ## Working with the database
 

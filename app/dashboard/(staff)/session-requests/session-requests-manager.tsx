@@ -75,7 +75,6 @@ export function SessionRequestsManager({
   }, [centerId, sessionType, isAdmin]);
 
   const centerRooms = rooms.filter((room) => room.center_id === centerId);
-  const roomSetupRooms = rooms.filter((room) => room.center_id === roomCenter);
 
   async function submitOrganization(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

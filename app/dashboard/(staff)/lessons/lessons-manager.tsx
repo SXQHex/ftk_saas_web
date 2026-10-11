@@ -110,7 +110,7 @@ export function LessonsManager({
       private_member_id: lesson.private_member_id ?? "",
       center_id: lesson.center_id ?? "",
       room_id: lesson.room_id ?? "",
-      expected_attendees: String(lesson.expected_attendees ?? 1),
+      expected_attendees: String(lesson.expected_attendees ?? (lesson.type === "private" ? 1 : 20)),
       notes: lesson.notes ?? "",
     });
     reset();

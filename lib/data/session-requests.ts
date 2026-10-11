@@ -33,7 +33,7 @@ export async function listSchedulingResources(supabase: ServerSupabase) {
 }
 
 export async function listSessionRequests(supabase: ServerSupabase) {
-  let query = supabase.from("session_requests")
+  const query = supabase.from("session_requests")
     .select("id, organization_id, center_id, room_id, instructor_id, session_type, title, private_member_id, starts_at, ends_at, expected_attendees, notes, status, created_at, review_note")
     .order("created_at", { ascending: false }).limit(200);
   const { data, error } = await query;

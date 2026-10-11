@@ -18,7 +18,7 @@ export async function listAttendance(
   let query = supabase
     .from("attendance")
     .select(
-      "id, lesson_id, member_id, attended, checked_in_at, notes, members!inner(full_name, email, phone), lessons(title, starts_at)",
+      "id, lesson_id, member_id, attended, checked_in_at, notes, members:members!attendance_member_id_fkey!inner(full_name, email, phone), lessons:lessons!attendance_lesson_id_fkey(title, starts_at)",
       { count: "exact" },
     )
     .order("checked_in_at", { ascending: false })

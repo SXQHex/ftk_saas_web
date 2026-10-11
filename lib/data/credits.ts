@@ -19,7 +19,7 @@ export async function listTransactions(supabase: ServerSupabase, { q, page }: { 
   let query = supabase
     .from("credit_transactions")
     .select(
-      "id, subscription_id, member_id, lesson_id, amount, reason, note, created_at, members!inner(full_name), subscriptions(type)",
+      "id, subscription_id, member_id, lesson_id, amount, reason, note, created_at, members:members!credit_transactions_member_id_fkey!inner(full_name), subscriptions:subscriptions!credit_transactions_subscription_id_fkey(type)",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })

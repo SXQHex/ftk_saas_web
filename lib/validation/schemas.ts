@@ -21,6 +21,7 @@ export const GROUP_PACKAGE_CREDITS = 4;
 export const MAX_CREDITS = 100;
 
 export const memberSchema = z.object({
+  center_id: uuid("Merkez seçin."),
   full_name: z.string().trim().min(1, "Üye adı zorunludur.").max(160, "Üye adı en fazla 160 karakter olabilir."),
   phone: optionalText(40, "Telefon"),
   email: z
@@ -45,16 +46,25 @@ export const lessonSchema = z
     title: z.string().trim().min(1, "Ders adı zorunludur.").max(160, "Ders adı en fazla 160 karakter olabilir."),
     starts_at: isoDateTime,
     ends_at: isoDateTime.nullable(),
-    instructor_id: uuid("Geçersiz eğitmen.").nullable(),
+    instructor_id: uuid("Eğitmen seçin."),
     private_member_id: uuid("Geçersiz üye.").nullable(),
+    center_id: uuid("Merkez seçin."),
+    room_id: uuid("Oda seçin."),
+    expected_attendees: z.number().int().min(1).max(500),
     notes: optionalText(2000, "Notlar"),
   })
   .superRefine((value, ctx) => {
     if (value.type === "private" && !value.private_member_id) {
       ctx.addIssue({ code: "custom", path: ["private_member_id"], message: "Özel ders için bir üye seçin." });
     }
+    if (value.type === "private" && value.expected_attendees !== 1) {
+      ctx.addIssue({ code: "custom", path: ["expected_attendees"], message: "Özel ders için katılımcı sayısı 1 olmalıdır." });
+    }
     if (value.ends_at && Date.parse(value.ends_at) <= Date.parse(value.starts_at)) {
       ctx.addIssue({ code: "custom", path: ["ends_at"], message: "Bitiş zamanı başlangıçtan sonra olmalıdır." });
+    }
+    if (!value.ends_at) {
+      ctx.addIssue({ code: "custom", path: ["ends_at"], message: "Oda rezervasyonu için bitiş saati zorunludur." });
     }
   })
   .transform((value) => ({

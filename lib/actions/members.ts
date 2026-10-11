@@ -10,9 +10,10 @@ export async function saveMember(id: string | null, input: unknown): Promise<Act
   const { data, failure } = parseInput(memberSchema, input);
   if (failure) return failure;
 
+  const { center_id, ...memberFields } = data;
   const result = id
-    ? await supabase.from("members").update(data).eq("id", id)
-    : await supabase.from("members").insert(data);
+    ? await supabase.from("members").update(memberFields).eq("id", id)
+    : await supabase.from("members").insert({ ...memberFields, center_id });
   if (result.error) return { ok: false, error: dbErrorMessage(result.error, "Üye kaydedilemedi.") };
 
   revalidatePath("/dashboard/members");

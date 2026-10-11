@@ -13,13 +13,13 @@ const otherId = "7a1c9e52-4b3d-4f80-9a6e-5d2b8c3f1e07";
 
 describe("memberSchema", () => {
   it("trims text and turns empty optional fields into null", () => {
-    const parsed = memberSchema.parse({ full_name: "  Ayşe Yılmaz ", phone: " ", email: "", notes: "", is_active: true });
-    expect(parsed).toEqual({ full_name: "Ayşe Yılmaz", phone: null, email: null, notes: null, is_active: true });
+    const parsed = memberSchema.parse({ center_id: id, full_name: "  Ayşe Yılmaz ", phone: " ", email: "", notes: "", is_active: true });
+    expect(parsed).toEqual({ center_id: id, full_name: "Ayşe Yılmaz", phone: null, email: null, notes: null, is_active: true });
   });
 
   it("requires a name and a valid e-mail when one is given", () => {
-    expect(memberSchema.safeParse({ full_name: " ", phone: "", email: "", notes: "", is_active: true }).success).toBe(false);
-    expect(memberSchema.safeParse({ full_name: "Ayşe", phone: "", email: "not-an-email", notes: "", is_active: true }).success).toBe(false);
+    expect(memberSchema.safeParse({ center_id: id, full_name: " ", phone: "", email: "", notes: "", is_active: true }).success).toBe(false);
+    expect(memberSchema.safeParse({ center_id: id, full_name: "Ayşe", phone: "", email: "not-an-email", notes: "", is_active: true }).success).toBe(false);
   });
 });
 
@@ -28,9 +28,12 @@ describe("lessonSchema", () => {
     type: "group" as const,
     title: "Grup dersi",
     starts_at: "2026-10-12T17:00:00.000Z",
-    ends_at: null,
-    instructor_id: null,
+    ends_at: "2026-10-12T18:00:00.000Z",
+    instructor_id: id,
     private_member_id: id,
+    center_id: id,
+    room_id: otherId,
+    expected_attendees: 20,
     notes: "",
   };
 
@@ -41,8 +44,8 @@ describe("lessonSchema", () => {
   });
 
   it("requires a member for private lessons", () => {
-    expect(lessonSchema.safeParse({ ...base, type: "private", private_member_id: null }).success).toBe(false);
-    expect(lessonSchema.safeParse({ ...base, type: "private" }).success).toBe(true);
+    expect(lessonSchema.safeParse({ ...base, type: "private", private_member_id: null, expected_attendees: 1 }).success).toBe(false);
+    expect(lessonSchema.safeParse({ ...base, type: "private", expected_attendees: 1 }).success).toBe(true);
   });
 
   it("rejects an end time that is not after the start", () => {

@@ -26,6 +26,12 @@ export async function saveLesson(id: string | null, input: unknown): Promise<Act
   if (!id && data.type === "private") {
     return fail("Özel dersler eğitmen talebi üzerinden oluşturulmalı ve yönetici tarafından onaylanmalı.");
   }
+  if (id && data.type === "private") {
+    const { data: current } = await supabase.from("lessons").select("type").eq("id", id).maybeSingle();
+    if (!current || current.type !== "private") {
+      return fail("Özel ders oluşturmak için eğitmen talebi ve yönetici onayı kullanılmalı.");
+    }
+  }
   const { data: room, error: roomError } = await supabase.from("rooms")
     .select("id, center_id, capacity, is_active").eq("id", data.room_id).maybeSingle();
   if (roomError || !room || !room.is_active || room.center_id !== data.center_id) {

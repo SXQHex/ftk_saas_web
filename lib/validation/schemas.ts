@@ -49,6 +49,7 @@ export const lessonSchema = z
     private_member_id: uuid("Geçersiz üye.").nullable(),
     center_id: uuid("Merkez seçin."),
     room_id: uuid("Oda seçin."),
+    expected_attendees: z.number().int().min(1).max(500),
     notes: optionalText(2000, "Notlar"),
   })
   .superRefine((value, ctx) => {

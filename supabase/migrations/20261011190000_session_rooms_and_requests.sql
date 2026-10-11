@@ -217,9 +217,6 @@ begin
 
   select * into v_request from public.session_requests where id = p_request_id for update;
   if not found then raise exception 'Seans talebi bulunamadı.'; end if;
-  if not (select app_private.is_center_admin(v_request.center_id)) then
-    raise exception 'Bu merkezde yönetici yetkiniz yok.' using errcode = '42501';
-  end if;
   if v_request.status <> 'pending' then raise exception 'Bu talep daha önce değerlendirilmiş.'; end if;
 
   if not p_approve then

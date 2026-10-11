@@ -1,25 +1,16 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Check, CirclePlus, CreditCard, Search, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { type FormEvent, useState } from "react";
+import { Check, CirclePlus, CreditCard, X } from "lucide-react";
+import { ListFilters } from "@/components/list-filters";
+import { PageNotice } from "@/components/page-notice";
+import { Pagination } from "@/components/pagination";
+import { useActionRunner } from "@/components/use-action-runner";
+import { createSubscription, updateSubscription as updateSubscriptionAction } from "@/lib/actions/subscriptions";
+import type { MemberOption } from "@/lib/data/members";
+import type { SubscriptionRow } from "@/lib/data/subscriptions";
 
-type Member = { id: string; full_name: string; is_active: boolean };
-type Subscription = {
-  id: string;
-  member_id: string;
-  type: "private_credits" | "group_4_weeks";
-  starts_on: string;
-  ends_on: string | null;
-  credits_purchased: number;
-  credits_remaining: number;
-  amount: number;
-  payment_status: "pending" | "paid" | "refunded";
-  paid_at: string | null;
-  status: "active" | "expired" | "cancelled";
-  notes: string | null;
-};
+type Subscription = SubscriptionRow;
 
 type SubscriptionForm = {
   member_id: string;
@@ -48,11 +39,6 @@ const statusLabels: Record<Subscription["status"], string> = {
   expired: "Süresi doldu",
   cancelled: "İptal",
 };
-const paymentLabels: Record<Subscription["payment_status"], string> = {
-  pending: "Bekliyor",
-  paid: "Ödendi",
-  refunded: "İade edildi",
-};
 const typeLabels: Record<Subscription["type"], string> = {
   private_credits: "Özel ders paketi",
   group_4_weeks: "Grup paketi · 4 ders",
@@ -68,112 +54,55 @@ function money(value: number) {
 
 export function SubscriptionsManager({
   subscriptions,
+  total,
+  stats,
   members,
-  userId,
+  query,
+  status,
+  page,
   loadError,
 }: {
   subscriptions: Subscription[];
-  members: Member[];
-  userId: string;
+  total: number;
+  stats: { total: number; active: number; remainingCredits: number };
+  members: MemberOption[];
+  query: string;
+  status: string;
+  page: number;
   loadError: boolean;
 }) {
-  const router = useRouter();
-  const [query, setQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(blankForm);
-  const [busy, setBusy] = useState(false);
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-
-  const memberById = useMemo(() => new Map(members.map((member) => [member.id, member])), [members]);
-  const filtered = subscriptions.filter((subscription) => {
-    const memberName = memberById.get(subscription.member_id)?.full_name ?? "";
-    const term = query.trim().toLocaleLowerCase("tr-TR");
-    return (!term || `${memberName} ${typeLabels[subscription.type]}`.toLocaleLowerCase("tr-TR").includes(term))
-      && (statusFilter === "all" || subscription.status === statusFilter);
-  });
+  const { busy, pendingId, error, notice, reset, run } = useActionRunner();
 
   function openCreate() {
     setForm({ ...blankForm, starts_on: localToday() });
-    setError("");
-    setNotice("");
+    reset();
     setFormOpen(true);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError("");
-    setNotice("");
-
-    const credits = form.type === "group_4_weeks" ? 4 : Number(form.credits_purchased);
-    const amount = Number(form.amount);
-    if (!form.member_id || !form.starts_on) {
-      setError("Üye ve başlangıç tarihi zorunludur.");
-      return;
-    }
-    if (!Number.isInteger(credits) || credits < 1 || credits > 100) {
-      setError("Ders sayısı 1 ile 100 arasında bir tam sayı olmalıdır.");
-      return;
-    }
-    if (!Number.isFinite(amount) || amount < 0) {
-      setError("Tutar sıfır veya daha büyük olmalıdır.");
-      return;
-    }
-    if (form.type === "private_credits" && (!form.ends_on || form.ends_on < form.starts_on)) {
-      setError("Özel ders paketi için başlangıçtan önce olmayan bir bitiş tarihi girin.");
-      return;
-    }
-
-    setBusy(true);
-    try {
-      const supabase = createClient();
-      const { error: insertError } = await supabase.from("subscriptions").insert({
-        member_id: form.member_id,
-        type: form.type,
-        starts_on: form.starts_on,
-        ends_on: form.type === "group_4_weeks" ? null : form.ends_on,
-        credits_purchased: credits,
-        credits_remaining: credits,
-        amount,
-        payment_status: form.payment_status,
-        paid_at: form.payment_status === "paid" ? new Date().toISOString() : null,
-        notes: form.notes.trim() || null,
-        created_by: userId,
-      });
-      if (insertError) throw insertError;
-      setNotice("Abonelik oluşturuldu. İlk kredi hareketi veritabanı tetikleyicisiyle kaydedildi.");
-      setFormOpen(false);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Abonelik oluşturulamadı.");
-    } finally {
-      setBusy(false);
-    }
+    const isGroup = form.type === "group_4_weeks";
+    await run(
+      () =>
+        createSubscription({
+          member_id: form.member_id,
+          type: form.type,
+          starts_on: form.starts_on,
+          ends_on: isGroup ? null : form.ends_on || null,
+          credits_purchased: isGroup ? 4 : Number(form.credits_purchased),
+          amount: Number(form.amount),
+          payment_status: form.payment_status,
+          notes: form.notes,
+        }),
+      { onSuccess: () => setFormOpen(false) },
+    );
   }
 
   async function updateSubscription(subscription: Subscription, changes: Partial<Pick<Subscription, "payment_status" | "status">>) {
-    const label = changes.status ? statusLabels[changes.status] : changes.payment_status ? paymentLabels[changes.payment_status] : "Güncelle";
     if (changes.status && changes.status !== "active" && !window.confirm("Aboneliğin durumu değiştirilsin mi? Bu işlem daha önce tüketilen kredileri geri yüklemez.")) return;
-    setPendingId(subscription.id);
-    setError("");
-    setNotice("");
-    try {
-      const supabase = createClient();
-      const payload = {
-        ...changes,
-        ...(changes.payment_status ? { paid_at: changes.payment_status === "paid" ? new Date().toISOString() : null } : {}),
-      };
-      const { error: updateError } = await supabase.from("subscriptions").update(payload).eq("id", subscription.id);
-      if (updateError) throw updateError;
-      setNotice(`Abonelik güncellendi: ${label}.`);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Abonelik güncellenemedi.");
-    } finally {
-      setPendingId(null);
-    }
+    await run(() => updateSubscriptionAction({ id: subscription.id, ...changes }), { rowId: subscription.id });
   }
 
   return (
@@ -183,11 +112,11 @@ export function SubscriptionsManager({
         <button className="primary-action" type="button" onClick={openCreate}><CirclePlus size={17} /> Abonelik ekle</button>
       </div>
       <div className="stat-strip">
-        <div><span>Toplam paket</span><strong>{subscriptions.length}</strong></div>
-        <div><span>Aktif paket</span><strong>{subscriptions.filter((s) => s.status === "active").length}</strong></div>
-        <div><span>Kalan toplam kredi</span><strong>{subscriptions.reduce((sum, s) => sum + (s.status === "active" ? s.credits_remaining : 0), 0)}</strong></div>
+        <div><span>Toplam paket</span><strong>{stats.total}</strong></div>
+        <div><span>Aktif paket</span><strong>{stats.active}</strong></div>
+        <div><span>Kalan toplam kredi</span><strong>{stats.remainingCredits}</strong></div>
       </div>
-      {(error || notice || loadError) && <div className={error || loadError ? "notice error page-notice" : "notice success page-notice"} role={error || loadError ? "alert" : "status"}>{error || (loadError ? "Abonelikler yüklenemedi. RLS politikalarını kontrol edin." : notice)}</div>}
+      <PageNotice error={error} notice={notice} loadError={loadError} loadErrorMessage="Abonelikler yüklenemedi. RLS politikalarını kontrol edin." />
 
       {formOpen && (
         <section className="form-card">
@@ -208,16 +137,15 @@ export function SubscriptionsManager({
       )}
 
       <section className="table-card">
-        <div className="table-toolbar"><div><h2>Paket listesi</h2><p>{filtered.length} kayıt gösteriliyor</p></div><div className="toolbar-filters"><label className="search-box"><Search size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Üye veya paket ara…" aria-label="Abonelik ara" /></label><select className="filter-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Abonelik durumuna göre filtrele"><option value="all">Tüm durumlar</option><option value="active">Aktif</option><option value="expired">Süresi doldu</option><option value="cancelled">İptal</option></select></div></div>
-        {subscriptions.length === 0 && !loadError ? (
+        <div className="table-toolbar"><div><h2>Paket listesi</h2><p>{total} kayıt bulundu</p></div><ListFilters action="/dashboard/subscriptions" query={query} searchPlaceholder="Üye ara…" searchLabel="Abonelik ara"><select className="filter-select" name="status" defaultValue={status} aria-label="Abonelik durumuna göre filtrele"><option value="">Tüm durumlar</option><option value="active">Aktif</option><option value="expired">Süresi doldu</option><option value="cancelled">İptal</option></select></ListFilters></div>
+        {stats.total === 0 && !loadError ? (
           <div className="empty-state"><span className="empty-icon"><CreditCard size={24} /></span><h3>Henüz abonelik yok</h3><p>Üye için ilk ders paketini oluşturarak başlayın.</p><button className="secondary-action" type="button" onClick={openCreate}>Abonelik ekle</button></div>
-        ) : filtered.length === 0 ? <div className="empty-state compact"><h3>Sonuç bulunamadı</h3><p>Arama veya filtre ölçütünü değiştirin.</p></div> : (
+        ) : subscriptions.length === 0 ? <div className="empty-state compact"><h3>Sonuç bulunamadı</h3><p>Arama veya filtre ölçütünü değiştirin.</p></div> : (
           <div className="table-scroll"><table className="data-table"><thead><tr><th>Üye / Paket</th><th>Kredi</th><th>Tutar</th><th>Ödeme</th><th>Durum</th><th>İşlem</th></tr></thead><tbody>
-            {filtered.map((subscription) => {
-              const member = memberById.get(subscription.member_id);
+            {subscriptions.map((subscription) => {
               const disabled = pendingId === subscription.id;
               return <tr key={subscription.id}>
-                <td><div className="person-cell"><span className="person-avatar"><CreditCard size={15} /></span><span><strong>{member?.full_name ?? "Üye kaydı bulunamadı"}</strong><small>{typeLabels[subscription.type]} · {new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(new Date(subscription.starts_on))}{subscription.ends_on ? ` – ${new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(new Date(subscription.ends_on))}` : " · Bitiş tarihi yok"}</small></span></div></td>
+                <td><div className="person-cell"><span className="person-avatar"><CreditCard size={15} /></span><span><strong>{subscription.members.full_name}</strong><small>{typeLabels[subscription.type]} · {new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(new Date(subscription.starts_on))}{subscription.ends_on ? ` – ${new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(new Date(subscription.ends_on))}` : " · Bitiş tarihi yok"}</small></span></div></td>
                 <td><div className="credit-cell"><strong>{subscription.credits_remaining} / {subscription.credits_purchased}</strong><span className="credit-bar"><span style={{ width: `${Math.min(100, Math.max(0, subscription.credits_remaining / subscription.credits_purchased * 100))}%` }} /></span></div></td>
                 <td><strong className="amount-cell">{money(Number(subscription.amount))}</strong></td>
                 <td><select className="inline-select" disabled={disabled || subscription.payment_status === "refunded"} value={subscription.payment_status} onChange={(e) => void updateSubscription(subscription, { payment_status: e.target.value as Subscription["payment_status"] })} aria-label="Ödeme durumunu değiştir"><option value="pending">Bekliyor</option><option value="paid">Ödendi</option>{subscription.payment_status === "refunded" && <option value="refunded">İade edildi</option>}</select></td>
@@ -227,6 +155,7 @@ export function SubscriptionsManager({
             })}
           </tbody></table></div>
         )}
+        <Pagination basePath="/dashboard/subscriptions" params={{ q: query, status }} page={page} total={total} />
       </section>
     </>
   );

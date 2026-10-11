@@ -1,54 +1,44 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Check, CirclePlus, Edit2, Mail, Phone, Search, UserRound, UserRoundX, X } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-
-type Member = {
-  id: string;
-  full_name: string;
-  phone: string | null;
-  email: string | null;
-  notes: string | null;
-  is_active: boolean;
-  created_at: string;
-};
+import { type FormEvent, useState } from "react";
+import { Check, CirclePlus, Edit2, Mail, Phone, UserRound, UserRoundX, X } from "lucide-react";
+import { ListFilters } from "@/components/list-filters";
+import { PageNotice } from "@/components/page-notice";
+import { Pagination } from "@/components/pagination";
+import { useActionRunner } from "@/components/use-action-runner";
+import { saveMember, setMemberActive } from "@/lib/actions/members";
+import type { MemberRow } from "@/lib/data/members";
 
 const emptyForm = { full_name: "", phone: "", email: "", notes: "", is_active: true };
 
-export function MembersManager({ members, loadError }: { members: Member[]; loadError: boolean }) {
-  const router = useRouter();
-  const [query, setQuery] = useState("");
+export function MembersManager({
+  members,
+  total,
+  stats,
+  query,
+  page,
+  loadError,
+}: {
+  members: MemberRow[];
+  total: number;
+  stats: { total: number; active: number; inactive: number };
+  query: string;
+  page: number;
+  loadError: boolean;
+}) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [busy, setBusy] = useState(false);
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-
-  const filteredMembers = useMemo(() => {
-    const term = query.trim().toLocaleLowerCase("tr-TR");
-    if (!term) return members;
-    return members.filter((member) =>
-      [member.full_name, member.phone ?? "", member.email ?? ""]
-        .some((value) => value.toLocaleLowerCase("tr-TR").includes(term))
-    );
-  }, [members, query]);
-
-  const activeCount = members.filter((member) => member.is_active).length;
-  const inactiveCount = members.length - activeCount;
+  const { busy, pendingId, error, notice, reset, run } = useActionRunner();
 
   function startCreate() {
     setEditingId(null);
     setForm(emptyForm);
-    setError("");
-    setNotice("");
+    reset();
     setFormOpen(true);
   }
 
-  function startEdit(member: Member) {
+  function startEdit(member: MemberRow) {
     setEditingId(member.id);
     setForm({
       full_name: member.full_name,
@@ -57,68 +47,23 @@ export function MembersManager({ members, loadError }: { members: Member[]; load
       notes: member.notes ?? "",
       is_active: member.is_active,
     });
-    setError("");
-    setNotice("");
+    reset();
     setFormOpen(true);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setBusy(true);
-    setError("");
-    setNotice("");
-
-    const payload = {
-      full_name: form.full_name.trim(),
-      phone: form.phone.trim() || null,
-      email: form.email.trim() || null,
-      notes: form.notes.trim() || null,
-      is_active: form.is_active,
-    };
-
-    if (!payload.full_name) {
-      setError("Üye adı zorunludur.");
-      setBusy(false);
-      return;
-    }
-
-    try {
-      const supabase = createClient();
-      const result = editingId
-        ? await supabase.from("members").update(payload).eq("id", editingId)
-        : await supabase.from("members").insert(payload);
-      if (result.error) throw result.error;
-
-      setNotice(editingId ? "Üye bilgileri güncellendi." : "Yeni üye kaydedildi.");
-      setFormOpen(false);
-      setEditingId(null);
-      setForm(emptyForm);
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Üye kaydedilemedi. Yetkinizi kontrol edin.");
-    } finally {
-      setBusy(false);
-    }
+    await run(() => saveMember(editingId, form), {
+      onSuccess: () => {
+        setFormOpen(false);
+        setEditingId(null);
+        setForm(emptyForm);
+      },
+    });
   }
 
-  async function toggleActive(member: Member) {
-    setPendingId(member.id);
-    setError("");
-    setNotice("");
-    try {
-      const supabase = createClient();
-      const { error: updateError } = await supabase
-        .from("members")
-        .update({ is_active: !member.is_active })
-        .eq("id", member.id);
-      if (updateError) throw updateError;
-      setNotice(member.is_active ? "Üye pasife alındı." : "Üye yeniden aktifleştirildi.");
-      router.refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Üye durumu güncellenemedi.");
-    } finally {
-      setPendingId(null);
-    }
+  async function toggleActive(member: MemberRow) {
+    await run(() => setMemberActive({ id: member.id, is_active: !member.is_active }), { rowId: member.id });
   }
 
   return (
@@ -129,12 +74,12 @@ export function MembersManager({ members, loadError }: { members: Member[]; load
       </div>
 
       <div className="stat-strip">
-        <div><span>Toplam üye</span><strong>{members.length}</strong></div>
-        <div><span>Aktif</span><strong>{activeCount}</strong></div>
-        <div><span>Pasif</span><strong>{inactiveCount}</strong></div>
+        <div><span>Toplam üye</span><strong>{stats.total}</strong></div>
+        <div><span>Aktif</span><strong>{stats.active}</strong></div>
+        <div><span>Pasif</span><strong>{stats.inactive}</strong></div>
       </div>
 
-      {(error || notice || loadError) && <div className={error || loadError ? "notice error page-notice" : "notice success page-notice"} role={error || loadError ? "alert" : "status"}>{error || (loadError ? "Üyeler yüklenemedi. RLS politikalarını ve yönetici rolünü kontrol edin." : notice)}</div>}
+      <PageNotice error={error} notice={notice} loadError={loadError} loadErrorMessage="Üyeler yüklenemedi. RLS politikalarını ve yönetici rolünü kontrol edin." />
 
       {formOpen && (
         <section className="form-card">
@@ -153,17 +98,17 @@ export function MembersManager({ members, loadError }: { members: Member[]; load
       )}
 
       <section className="table-card">
-        <div className="table-toolbar"><div><h2>Üye listesi</h2><p>{filteredMembers.length} kayıt gösteriliyor</p></div><label className="search-box"><Search size={17} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Üye ara…" aria-label="Üye ara" /></label></div>
-        {members.length === 0 && !loadError ? (
+        <div className="table-toolbar"><div><h2>Üye listesi</h2><p>{total} kayıt bulundu</p></div><ListFilters action="/dashboard/members" query={query} searchPlaceholder="Üye ara…" searchLabel="Üye ara" /></div>
+        {stats.total === 0 && !loadError ? (
           <div className="empty-state"><span className="empty-icon"><UserRound size={24} /></span><h3>Henüz üye yok</h3><p>İlk üye kaydınızı oluşturarak başlayın.</p><button className="secondary-action" onClick={startCreate} type="button">Üye ekle</button></div>
-        ) : filteredMembers.length === 0 ? (
+        ) : members.length === 0 ? (
           <div className="empty-state compact"><h3>Sonuç bulunamadı</h3><p>Arama ölçütünü değiştirin.</p></div>
         ) : (
           <div className="table-scroll">
             <table className="data-table">
               <thead><tr><th>Üye</th><th>İletişim</th><th>Durum</th><th className="actions-head">İşlem</th></tr></thead>
               <tbody>
-                {filteredMembers.map((member) => (
+                {members.map((member) => (
                   <tr key={member.id}>
                     <td><div className="person-cell"><span className="person-avatar">{member.full_name.trim().slice(0, 1).toLocaleUpperCase("tr-TR")}</span><span><strong>{member.full_name}</strong><small>Eklenme: {new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(new Date(member.created_at))}</small></span></div></td>
                     <td><div className="contact-cell">{member.phone && <span><Phone size={13} />{member.phone}</span>}{member.email && <span><Mail size={13} />{member.email}</span>}{!member.phone && !member.email && <span className="subtle">Bilgi girilmedi</span>}</div></td>
@@ -175,6 +120,7 @@ export function MembersManager({ members, loadError }: { members: Member[]; load
             </table>
           </div>
         )}
+        <Pagination basePath="/dashboard/members" params={{ q: query }} page={page} total={total} />
       </section>
     </>
   );

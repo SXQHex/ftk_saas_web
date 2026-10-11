@@ -1,26 +1,43 @@
+import { attendanceStats, listAttendance, recordedMemberIds } from "@/lib/data/attendance";
+import { listRecentLessonOptions } from "@/lib/data/lessons";
+import { listMemberOptions } from "@/lib/data/members";
+import { parsePage, pickUuid, sanitizeSearchTerm, type SearchParams } from "@/lib/data/pagination";
+import { listActiveSubscriptions } from "@/lib/data/subscriptions";
 import { requireRole } from "@/lib/supabase/access";
 import { AttendanceManager } from "./attendance-manager";
 
 export const metadata = { title: "Yoklama | FTK Studio" };
 
-export default async function AttendancePage() {
-  const { supabase, userId } = await requireRole(["admin", "instructor"]);
-  const [lessonsResult, membersResult, attendanceResult, subscriptionsResult] = await Promise.all([
-    supabase.from("lessons").select("id, type, title, starts_at, status, private_member_id").order("starts_at", { ascending: false }).limit(300),
-    supabase.from("members").select("id, full_name, phone, email, is_active").order("full_name"),
-    supabase.from("attendance").select("id, lesson_id, member_id, attended, checked_in_at, notes").order("checked_in_at", { ascending: false }).limit(500),
-    supabase.from("subscriptions").select("id, member_id, type, status, starts_on, ends_on, credits_remaining").order("starts_on", { ascending: false }),
+export default async function AttendancePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const { supabase } = await requireRole(["admin", "instructor"]);
+  const params = await searchParams;
+  const q = sanitizeSearchTerm(params.q);
+  const lessonId = pickUuid(params.lesson);
+  const page = parsePage(params.page);
+
+  const [list, stats, lessons, members, subscriptions, recorded] = await Promise.all([
+    listAttendance(supabase, { q, lessonId, page }),
+    attendanceStats(supabase),
+    listRecentLessonOptions(supabase),
+    listMemberOptions(supabase),
+    listActiveSubscriptions(supabase),
+    recordedMemberIds(supabase, lessonId),
   ]);
 
   return (
     <div className="dashboard-content">
       <AttendanceManager
-        lessons={lessonsResult.data ?? []}
-        members={membersResult.data ?? []}
-        attendance={attendanceResult.data ?? []}
-        subscriptions={subscriptionsResult.data ?? []}
-        userId={userId}
-        loadError={Boolean(lessonsResult.error || membersResult.error || attendanceResult.error || subscriptionsResult.error)}
+        lessons={lessons.rows}
+        members={members.rows}
+        attendance={list.rows}
+        total={list.total}
+        stats={stats}
+        recordedMemberIds={recorded}
+        subscriptions={subscriptions.rows}
+        lessonId={lessonId}
+        query={q}
+        page={page}
+        loadError={list.error || lessons.error || members.error || subscriptions.error}
       />
     </div>
   );

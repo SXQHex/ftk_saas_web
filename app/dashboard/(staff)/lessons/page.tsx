@@ -1,24 +1,38 @@
+import { LESSON_STATUSES, lessonStats, listInstructorOptions, listLessons } from "@/lib/data/lessons";
+import { listMemberOptions } from "@/lib/data/members";
+import { parsePage, pickOption, sanitizeSearchTerm, type SearchParams } from "@/lib/data/pagination";
 import { requireRole } from "@/lib/supabase/access";
 import { LessonsManager } from "./lessons-manager";
 
 export const metadata = { title: "Ders Takvimi | FTK Studio" };
 
-export default async function LessonsPage() {
+export default async function LessonsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const { supabase, profile } = await requireRole(["admin", "instructor"]);
-  const [lessonsResult, membersResult, profilesResult] = await Promise.all([
-    supabase.from("lessons").select("id, type, title, starts_at, ends_at, status, instructor_id, private_member_id, notes").order("starts_at", { ascending: false }).limit(200),
-    supabase.from("members").select("id, full_name").eq("is_active", true).order("full_name"),
-    supabase.from("profiles").select("id, full_name, role").in("role", ["instructor", "admin"]).order("full_name"),
+  const params = await searchParams;
+  const q = sanitizeSearchTerm(params.q);
+  const status = pickOption(params.status, LESSON_STATUSES);
+  const page = parsePage(params.page);
+
+  const [list, stats, members, instructors] = await Promise.all([
+    listLessons(supabase, { q, status, page }),
+    lessonStats(supabase),
+    listMemberOptions(supabase),
+    listInstructorOptions(supabase),
   ]);
 
   return (
     <div className="dashboard-content">
       <LessonsManager
         canManage={profile.role === "admin"}
-        lessons={lessonsResult.data ?? []}
-        members={membersResult.data ?? []}
-        instructors={profilesResult.data ?? []}
-        loadError={Boolean(lessonsResult.error)}
+        lessons={list.rows}
+        total={list.total}
+        stats={stats}
+        members={members.rows}
+        instructors={instructors}
+        query={q}
+        status={status}
+        page={page}
+        loadError={list.error}
       />
     </div>
   );

@@ -35,10 +35,6 @@ export async function listSessionRequests(supabase: ServerSupabase, isAdmin: boo
   let query = supabase.from("session_requests")
     .select("id, organization_id, center_id, room_id, instructor_id, session_type, title, private_member_id, starts_at, ends_at, expected_attendees, notes, status, created_at, review_note")
     .order("created_at", { ascending: false }).limit(200);
-  if (!isAdmin) {
-    const { data: auth } = await supabase.auth.getUser();
-    if (auth.user) query = query.eq("requested_by", auth.user.id);
-  }
   const { data, error } = await query;
   const requests = data ?? [];
   const centerIds = [...new Set(requests.map((r) => r.center_id))];

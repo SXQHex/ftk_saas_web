@@ -40,8 +40,8 @@ describe("center-level isolation migration contract", () => {
     expect(tenancy).toContain("attendance_lesson_center_fkey");
     expect(tenancy).toContain("credit_transactions_subscription_center_fkey");
     expect(tenancy).toContain("credit_transactions_member_center_fkey");
+    expect(migration).toContain("drop policy if exists profiles_read_self_or_staff");
     expect(migration).toContain("profiles_read_self_or_admin");
-    expect(migration).not.toContain("profiles_read_self_or_staff");
   });
 
   it("applies manual credit adjustments atomically in the ledger trigger", () => {

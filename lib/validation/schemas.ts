@@ -21,6 +21,7 @@ export const GROUP_PACKAGE_CREDITS = 4;
 export const MAX_CREDITS = 100;
 
 export const memberSchema = z.object({
+  center_id: uuid("Merkez seçin."),
   full_name: z.string().trim().min(1, "Üye adı zorunludur.").max(160, "Üye adı en fazla 160 karakter olabilir."),
   phone: optionalText(40, "Telefon"),
   email: z

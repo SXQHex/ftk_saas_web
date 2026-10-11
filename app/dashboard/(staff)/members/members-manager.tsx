@@ -8,11 +8,13 @@ import { Pagination } from "@/components/pagination";
 import { useActionRunner } from "@/components/use-action-runner";
 import { saveMember, setMemberActive } from "@/lib/actions/members";
 import type { MemberRow } from "@/lib/data/members";
+import type { CenterOption } from "@/lib/data/session-requests";
 
-const emptyForm = { full_name: "", phone: "", email: "", notes: "", is_active: true };
+const emptyForm = { center_id: "", full_name: "", phone: "", email: "", notes: "", is_active: true };
 
 export function MembersManager({
   members,
+  centers,
   total,
   stats,
   query,
@@ -20,6 +22,7 @@ export function MembersManager({
   loadError,
 }: {
   members: MemberRow[];
+  centers: CenterOption[];
   total: number;
   stats: { total: number; active: number; inactive: number };
   query: string;
@@ -28,12 +31,12 @@ export function MembersManager({
 }) {
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState({ ...emptyForm, center_id: centers[0]?.id ?? "" });
   const { busy, pendingId, error, notice, reset, run } = useActionRunner();
 
   function startCreate() {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm({ ...emptyForm, center_id: centers[0]?.id ?? "" });
     reset();
     setFormOpen(true);
   }
@@ -41,6 +44,7 @@ export function MembersManager({
   function startEdit(member: MemberRow) {
     setEditingId(member.id);
     setForm({
+      center_id: member.center_id,
       full_name: member.full_name,
       phone: member.phone ?? "",
       email: member.email ?? "",
@@ -57,7 +61,7 @@ export function MembersManager({
       onSuccess: () => {
         setFormOpen(false);
         setEditingId(null);
-        setForm(emptyForm);
+        setForm({ ...emptyForm, center_id: centers[0]?.id ?? "" });
       },
     });
   }
@@ -86,6 +90,7 @@ export function MembersManager({
           <div className="form-card-heading"><div><h2>{editingId ? "Üye bilgilerini düzenle" : "Yeni üye kaydı"}</h2><p>Yıldızlı alanlar zorunludur.</p></div><button className="icon-button" type="button" onClick={() => setFormOpen(false)} aria-label="Formu kapat"><X size={18} /></button></div>
           <form className="record-form" onSubmit={handleSubmit}>
             <div className="field-grid">
+              <label>Merkez *<select required disabled={Boolean(editingId)} value={form.center_id} onChange={(e) => setForm({ ...form, center_id: e.target.value })}><option value="">Merkez seçin</option>{centers.map((center) => <option key={center.id} value={center.id}>{center.name}</option>)}</select></label>
               <label>Ad soyad *<input required maxLength={160} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} placeholder="Üyenin adı soyadı" /></label>
               <label>Telefon<input type="tel" maxLength={40} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+90 5xx xxx xx xx" /></label>
               <label>E-posta<input type="email" maxLength={254} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="uye@ornek.com" /></label>
@@ -106,11 +111,12 @@ export function MembersManager({
         ) : (
           <div className="table-scroll">
             <table className="data-table">
-              <thead><tr><th>Üye</th><th>İletişim</th><th>Durum</th><th className="actions-head">İşlem</th></tr></thead>
+              <thead><tr><th>Üye</th><th>Merkez</th><th>İletişim</th><th>Durum</th><th className="actions-head">İşlem</th></tr></thead>
               <tbody>
                 {members.map((member) => (
                   <tr key={member.id}>
                     <td><div className="person-cell"><span className="person-avatar">{member.full_name.trim().slice(0, 1).toLocaleUpperCase("tr-TR")}</span><span><strong>{member.full_name}</strong><small>Eklenme: {new Intl.DateTimeFormat("tr-TR", { dateStyle: "medium" }).format(new Date(member.created_at))}</small></span></div></td>
+                    <td>{centers.find((center) => center.id === member.center_id)?.name ?? "Merkez"}</td>
                     <td><div className="contact-cell">{member.phone && <span><Phone size={13} />{member.phone}</span>}{member.email && <span><Mail size={13} />{member.email}</span>}{!member.phone && !member.email && <span className="subtle">Bilgi girilmedi</span>}</div></td>
                     <td><span className={member.is_active ? "status-pill active-status" : "status-pill inactive-status"}><span />{member.is_active ? "Aktif" : "Pasif"}</span></td>
                     <td><div className="row-actions"><button className="icon-button" type="button" onClick={() => startEdit(member)} aria-label={`${member.full_name} bilgilerini düzenle`}><Edit2 size={16} /></button><button className="icon-button" type="button" disabled={pendingId === member.id} onClick={() => void toggleActive(member)} aria-label={member.is_active ? "Üyeyi pasife al" : "Üyeyi aktifleştir"}>{member.is_active ? <UserRoundX size={16} /> : <Check size={16} />}</button></div></td>

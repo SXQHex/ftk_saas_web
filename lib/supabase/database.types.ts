@@ -259,6 +259,20 @@ export type Database = {
             referencedRelation: "members"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lessons_center_id_fkey"
+            columns: ["center_id"]
+            isOneToOne: false
+            referencedRelation: "centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
+            referencedColumns: ["id"]
+          },
         ]
       }
       members: {
@@ -400,7 +414,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      review_session_request: { Args: { p_request_id: string; p_approve: boolean; p_review_note?: string | null }; Returns: string | null }
     }
     Enums: {
       app_role: "admin" | "instructor" | "student"
